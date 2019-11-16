@@ -1,134 +1,87 @@
-# NDEF Library for Raspberry Pi
+## NFC library for Arduino
 
-Read and Write NDEF messages on NFC Tags with Raspberry Pi.
+This is a port of [Yihui Xiong's PN532 Library](https://github.com/Seeed-Studio/PN532) for using the PN532 chip with Raspberry Pi. 
 
-NFC Data Exchange Format (NDEF) is a common data format that operates across all NFC devices, regardless of the underlying tag or device technology.
+[![NFC Shield](https://statics3.seeedstudio.com/images/113030001%201.jpg)](http://goo.gl/Cac2OH)
+[![Grove - NFC](https://statics3.seeedstudio.com/images/product/grove%20nfc.jpg)](http://goo.gl/L3Uw5G)
 
-This code is a port of Don Coleman's arduino library for PN5352 found here: [NDEF](https://github.com/don/NDEF)
+### Features
++ Support all interfaces of PN532 (I2C, SPI, HSU )
++ Read/write Mifare Classic Card
++ Works with [Don's NDEF Library](http://goo.gl/jDjsXl)
++ Communicate with android 4.0+([Lists of devices supported](https://github.com/Seeed-Studio/PN532/wiki/List-of-devices-supported))
++ Support [mbed platform](http://goo.gl/kGPovZ)
++ Card emulation (NFC Type 4 tag)
 
-### Supports 
- - Reading from Mifare Classic Tags with 4 byte UIDs.
- - Writing to Mifare Classic Tags with 4 byte UIDs.
- - Reading from Mifare Ultralight tags.
- - Writing to Mifare Ultralight tags.
- - Peer to Peer with the Seeed Studio shield
+### To Do
++ To support more than one INFO PDU of P2P communication
++ To read/write NFC Type 4 tag
 
-### Requires
+### Getting Started
++ Easy way
 
-[Yihui Xiong's PN532 Library](https://github.com/Seeed-Studio/PN532)
+  1. Download [zip file](http://goo.gl/F6beRM) and extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
+  2. Download [Don's NDEF library](http://goo.gl/ewxeAe)， extract it into Arduino's libraries and rename it to NDEF.
+  3. Follow the examples of the two libraries.
 
-## Getting Started
++ Git way for Linux/Mac (recommended)
 
-To use the Ndef library in your code, include the following in your sketch
+  1. Get PN532 library and NDEF library
 
-For the Adafruit Shield using I2C 
+          cd {Arduino}\libraries  
+          git clone --recursive https://github.com/Seeed-Studio/PN532.git NFC
+          ln -s NFC/PN532 ./
+          ln -s NFC/PN532_SPI ./
+          ln -s NFC/PN532_I2C ./
+          ln -s NFC/PN532_HSU ./
+          ln -s NFC/NDEF ./
 
-    #include <Wire.h>
-    #include <PN532_I2C.h>
-    #include <PN532.h>
-    #include <NfcAdapter.h>
-    
-    PN532_I2C pn532_i2c(Wire);
-    NfcAdapter nfc = NfcAdapter(pn532_i2c);
+  2. Follow the examples of the two libraries
 
-For the Seeed Shield using SPI
+### Contribution
+It's based on [Adafruit_NFCShield_I2C](http://goo.gl/pk3FdB). 
+[Seeed Studio](http://goo.gl/zh1iQh) rewrite the library to make it easy to support different interfaces and platforms. 
+@Don writes the [NDEF library](http://goo.gl/jDjsXl) to make it more easy to use. 
+@JiapengLi adds HSU interface.
+@awieser adds card emulation function.
 
-    #include <SPI.h>
-    #include <PN532_SPI.h>
-    #include <PN532.h>
-    #include <NfcAdapter.h>
-    
-    PN532_SPI pn532spi(SPI, 10);
-    NfcAdapter nfc = NfcAdapter(pn532spi);
+## HSU Interface
 
-### NfcAdapter
+HSU is short for High Speed Uart. HSU interface needs only 4 wires to connect PN532 with Arduino, [Sensor Shield](http://goo.gl/i0EQgd) can make it more easier. For some Arduino boards like [Leonardo][Leonardo], [DUE][DUE], [Mega][Mega] ect, there are more than one `Serial` on these boards, so we can use this additional Serial to control PN532, HSU uses 115200 baud rate .
 
-The user interacts with the NfcAdapter to read and write NFC tags using the NFC shield.
+To use the `Serial1` control PN532, refer to the code below.
+```c++
+	#include <PN532_HSU.h>
+	#include <PN532.h>
+	
+	PN532_HSU pn532hsu(Serial1);
+	PN532 nfc(pn532hsu);
 
-Read a message from a tag
+	void setup(void)
+	{
+		nfc.begin();
+		//...
+	}
+```
+If your Arduino has only one serial interface and you want to keep it for control or debugging with the Serial Monitor, you can use the [`SoftwareSerial`][SoftwareSerial] library to control the PN532 by emulating a serial interface. Include `PN532_SWHSU.h` instead of `PN532_HSU.h`:
+```c++
+	#include <SoftwareSerial.h>
+	#include <PN532_SWHSU.h>
+	#include <PN532.h>
+	
+	SoftwareSerial SWSerial( 10, 11 ); // RX, TX
 
-    if (nfc.tagPresent()) {
-        NfcTag tag = nfc.read();
-        tag.print();
-    }
+	PN532_SWHSU pn532swhsu( SWSerial );
+	PN532 nfc( pn532swhsu );
 
-Write a message to a tag
+	void setup(void)
+	{
+		nfc.begin();
+		//...
+	}
+```
+[Mega]: http://arduino.cc/en/Main/arduinoBoardMega
+[DUE]: http://arduino.cc/en/Main/arduinoBoardDue
+[Leonardo]: http://arduino.cc/en/Main/arduinoBoardLeonardo
+[SoftwareSerial]: https://www.arduino.cc/en/Reference/softwareSerial
 
-    if (nfc.tagPresent()) {
-        NdefMessage message = NdefMessage();
-        message.addTextRecord("Hello, Arduino!");
-        success = nfc.write(message);
-    }
-
-Erase a tag. Tags are erased by writing an empty NDEF message. Tags are not zeroed out the old data may still be read off a tag using an application like [NXP's TagInfo](https://play.google.com/store/apps/details?id=com.nxp.taginfolite&hl=en).
-
-    if (nfc.tagPresent()) {
-        success = nfc.erase();
-    }
-
-
-Format a Mifare Classic tag as NDEF.
-
-    if (nfc.tagPresent()) {
-        success = nfc.format();
-    }
-
-
-Clean a tag. Cleaning resets a tag back to a factory-like state. For Mifare Classic, tag is zeroed and reformatted as Mifare Classic (non-NDEF). For Mifare Ultralight, the tag is zeroed and left empty.
-
-    if (nfc.tagPresent()) {
-        success = nfc.clean();
-    }
-
-
-### NfcTag 
-
-Reading a tag with the shield, returns a NfcTag object. The NfcTag object contains meta data about the tag UID, technology, size.  When an NDEF tag is read, the NfcTag object contains a NdefMessage.
-
-### NdefMessage
-
-A NdefMessage consist of one or more NdefRecords.
-
-The NdefMessage object has helper methods for adding records.
-
-    ndefMessage.addTextRecord("hello, world");
-    ndefMessage.addUriRecord("http://arduino.cc");
-
-The NdefMessage object is responsible for encoding NdefMessage into bytes so it can be written to a tag. The NdefMessage also decodes bytes read from a tag back into a NdefMessage object.
-
-### NdefRecord
-
-A NdefRecord carries a payload and info about the payload within a NdefMessage.
-
-### Peer to Peer
-
-Peer to Peer is provided by the LLCP and SNEP support in the [Seeed Studio library](https://github.com/Seeed-Studio/PN532).  P2P requires SPI and has only been tested with the Seeed Studio shield.  Peer to Peer was tested between Arduino and Android or BlackBerry 10. (Unfortunately Windows Phone 8 did not work.) See [P2P_Send](examples/P2P_Send/P2P_Send.ino) and [P2P_Receive](examples/P2P_Receive/P2P_Receive.ino) for more info.
-
-### Specifications
-
-This code is based on the "NFC Data Exchange Format (NDEF) Technical Specification" and the "Record Type Definition Technical Specifications" that can be downloaded from the [NFC Forum](http://www.nfc-forum.org/specs/spec_license).
-
-### Tests
-
-To run the tests, you'll need [ArduinoUnit](https://github.com/mmurdoch/arduinounit). To "install", I clone the repo to my home directory and symlink the source into ~/Documents/Arduino/libraries/ArduinoUnit.
-
-    $ cd ~
-    $ git clone git@github.com:mmurdoch/arduinounit.git
-    $ cd ~/Documents/Arduino/libraries/
-    $ ln -s ~/arduinounit/src ArduinoUnit
-    
-Tests can be run on an Uno without a NFC shield, since the NDEF logic is what is being tested.
-    
-## Warning
-
-This software is in development. It works for the happy path. Error handling could use improvement. It runs out of memory, especially on the Uno board. Use small messages with the Uno. The Due board can write larger messages. Please submit patches.
-
-## Book
-Need more info? Check out my book <a href="http://www.anrdoezrs.net/click-7521423-11260198-1430755877000?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920021193.do%3Fcmp%3Daf-prog-books-videos-product_cj_9781449372064_%2525zp&cjsku=0636920021193" target="_top">
-Beginning NFC: Near Field Communication with Arduino, Android, and PhoneGap</a><img src="http://www.lduhtrp.net/image-7521423-11260198-1430755877000" width="1" height="1" border="0"/>.
-
-<a href="http://www.tkqlhce.com/click-7521423-11260198-1430755877000?url=http%3A%2F%2Fshop.oreilly.com%2Fproduct%2F0636920021193.do%3Fcmp%3Daf-prog-books-videos-product_cj_9781449372064_%2525zp&cjsku=0636920021193" target="_top"><img src="http://akamaicovers.oreilly.com/images/0636920021193/cat.gif" border="0" alt="Beginning NFC"/></a><img src="http://www.awltovhc.com/image-7521423-11260198-1430755877000" width="1" height="1" border="0"/>
-
-## License
-
-[BSD License](https://github.com/gassajor000/pyndef/blob/master/LICENSE.txt) (c) 2013-2014, Don Coleman
