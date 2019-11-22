@@ -1,5 +1,6 @@
 */
 !PN532*
 !NDEF*
+!test
 
 .DS_Store
