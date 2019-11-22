@@ -3,16 +3,19 @@ import time
 from PN532.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
     PN532_NO_SPACE, PN532_INVALID_ACK, PN532_TIMEOUT, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, \
     PN532_HOSTTOPN532, PN532_POSTAMBLE
+from spidev import SpiDev
 
 STATUS_READ = 2
 DATA_WRITE = 1
 DATA_READ = 3
 
+RPI_BUS0 = 0
+SPI_MODE0 = 0b0
+
 
 class pn532spi(pn532Interface):
-    _spi = None
-    _ss = None
-    _command = None
+    SS0_GPIO8 = 0
+    SS1_GPIO7 = 1
 
     def write(self, data):
         self._spi.transfer(data)
@@ -21,31 +24,22 @@ class pn532spi(pn532Interface):
         return self._spi.transfer(0)
 
 
-    def __init__(self, spi: SPIClass, ss: int):
+    def __init__(self, ss: int):
         self._command = 0
-        self._spi = spi
         self._ss = ss
+        self._spi = SpiDev()
+        assert ss < 2, 'Chip select must be 1 or 0'
 
     def begin(self):
-        pinMode(self._ss, OUTPUT)
-
-        self._spi.begin()
-        self._spi.setDataMode(SPI_MODE0) # PN532 only supports mode0
-        self._spi.setBitOrder(LSBFIRST)
-        # if defined __SAM3X8E__
-        """DUE spi library does not support SPI_CLOCK_DIV8 macro"""
-        self._spi.setClockDivider(42) # set clock 2 MHz(max: 5 MHz)
-        # elif defined __SAMD21G18A__
-        """M0 spi library does not support SPI_CLOCK_DIV8 macro"""
-        self._spi.setClockDivider(24) # set clock 2 MHz(max: 5 MHz)
-        # else
-        self._spi.setClockDivider(SPI_CLOCK_DIV8) # set clock 2 MHz(max: 5 MHz)
-        # endif
+        self._spi.open(RPI_BUS0, self._ss)
+        self._spi.mode = SPI_MODE0  # PN532 only supports mode0
+        self._spi.lsbfirst = True
+        self._spi.max_speed_hz = 5000000 # 5 MHz
 
     def wakeup(self) -> None:
-        digitalWrite(self._ss, LOW)
+        self._spi.cshigh = False
         time.sleep(2)
-        digitalWrite(self._ss, HIGH)
+        self._spi.cshigh = True
 
     def writeCommand(self, header: str, hlen: int, body: str, blen: int) -> int:
         self._command = header[0]

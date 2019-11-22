@@ -3,9 +3,13 @@
     Test pn532spi class
 """
 from unittest import TestCase
+from PN532_SPI.pn532spi import pn532spi
 
 
 class TestPn532spi(TestCase):
+    def setUp(self):
+        self.pn532 = pn532spi(ss=pn532spi.SS0_GPIO8)
+
     def test_write(self):
         self.fail()
 
@@ -13,11 +17,11 @@ class TestPn532spi(TestCase):
         self.fail()
 
     def test_begin(self):
-        self.fail()
+        self.pn532.begin()
 
     def test_wakeup(self):
-        self.fail()
-
+        self.fail('stuff')
+        
     def test_writeCommand(self):
         self.fail()
 
