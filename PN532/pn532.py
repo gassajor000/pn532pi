@@ -4,6 +4,8 @@
     @license  BSD
 
 """
+from typing import List
+
 from PN532.pn532Interface import pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
@@ -184,7 +186,10 @@ class pn532:
                 print("%c" % c)
             
             print("\n")
-        
+
+    def getBuffer(self) -> List[int]: 
+        return self.pn532_packetbuffer
+
     def getFirmwareVersion(self) -> int:
         """
         @brief  Checks the firmware version of the PN5xx chip
@@ -647,28 +652,29 @@ class pn532:
 
         # Seems that everything was OK (?!)
         return 1
-    
 
-    def mifareclassic_WriteNDEFURI (self, sectorNumber: int, uriIdentifier: int, url: str) -> int:
+
+    def mifareclassic_WriteNDEFURI (self, sectorNumber: int, uriIdentifier: int, url: str, x) -> int:
         """
-                Writes an NDEF URI Record to the specified sector (1..15)
+        Writes an NDEF URI Record to the specified sector (1..15)
 
         Note that this function assumes that the Mifare Classic card is
         already formatted to work as an "NFC Forum Tag" and uses a MAD1
         file system.  You can use the NXP TagWriter app on Android to
         properly format cards for this.
 
-        @param  sectorNumber  The sector that the URI record should be written
+        :param  sectorNumber:  The sector that the URI record should be written
                               to (can be 1..15 for a 1K card)
-        @param  uriIdentifier The uri identifier code (0 = none, 0x01 =
+        :param  uriIdentifier: The uri identifier code (0 = none, 0x01 =
                               "http:#www.", etc.)
-        @param  url           The uri text to write (max 38 characters).
+        :param  url_bytes:           The uri text to write (max 38 characters).
 
-        @returns 1 if everything executed properly, 0 for an error
+        :return: 1 if everything executed properly, 0 for an error
         """
 
         # Figure out how long the string is
-        length = len(url)
+        url_bytes = bytearray(url, 'ascii')
+        length = len(url_bytes)
 
         # Make sure we're within a 1K limit for the sector number
         if ((sectorNumber < 1) or (sectorNumber > 15)):
@@ -682,33 +688,33 @@ class pn532:
         # in NDEF records
 
         # Setup the sector buffer (w/pre-formatted TLV wrapper and NDEF message)
-        sectorbuffer1 = [0x00, 0x00, 0x03, length + 5, 0xD1, 0x01, length + 1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer2 = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer3 = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer4 = [0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+        sectorbuffer1 = bytearray([0x00, 0x00, 0x03, length + 5, 0xD1, 0x01, length + 1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer2 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer3 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer4 = bytearray([0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
         if (length <= 6) :
             # Unlikely we'll get a url this short, but why not ...
-            memcpy (sectorbuffer1 + 9, url, length)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:length] + sectorbuffer1[9 + length:]
             sectorbuffer1[length + 9] = 0xFE
         elif (length == 7):
             # 0xFE needs to be wrapped around to next block
-            memcpy (sectorbuffer1 + 9, url, length)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:length] + sectorbuffer1[9 + length:]
             sectorbuffer2[0] = 0xFE
         elif ((length > 7) and (length <= 22)):
             # Url fits in two blocks
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, length - 7)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[length - 7:] + sectorbuffer2[length - 7:]
             sectorbuffer2[length - 7] = 0xFE
         elif (length == 23):
             # 0xFE needs to be wrapped around to final block
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, length - 7)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[length - 7:]
             sectorbuffer3[0] = 0xFE
-         else:
+        else:
             # Url fits in three blocks
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, 16)
-            memcpy (sectorbuffer3, url + 23, length - 23)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[7:23]
+            sectorbuffer3 = url_bytes[23:] + sectorbuffer3[length - 23:]
             sectorbuffer3[length - 23] = 0xFE
         
 
@@ -942,7 +948,7 @@ class pn532:
             
 
             self.pn532_packetbuffer[0] = PN532_COMMAND_TGSETDATA
-            if (self._interface.writeCommand(self.pn532_packetbuffer, 1, header, hlen)) 
+            if (self._interface.writeCommand(self.pn532_packetbuffer, 1, header, hlen)):
                 return False
             
         else :
