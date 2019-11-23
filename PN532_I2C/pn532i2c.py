@@ -17,7 +17,7 @@ class pn532i2c(pn532Interface):
     def wakeup(self):
         time.sleep(.5) # wait for all ready to manipulate pn532
 
-    def writeCommand(self, header: str, hlen: int, body: str, blen: int = 0):
+    def writeCommand(self, header: bytearray, body: bytearray):
         self._command = header[0]
         self._wire.beginTransmission(PN532_I2C_ADDRESS)
 
@@ -62,7 +62,7 @@ class pn532i2c(pn532Interface):
 
         return self.readAckFrame()
 
-    def getResponseLength(self, buf: bytearray, length: int, timeout: int):
+    def _getResponseLength(self, timeout: int):
         PN532_NACK = [0, 0, 0xFF, 0xFF, 0, 0]
         time = 0
 
@@ -96,9 +96,10 @@ class pn532i2c(pn532Interface):
 
         return length
 
-    def readResponse(self, buf: bytearray, blen: int, timeout: int = 1000) -> int:
+    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
         t = 0
-        length = self.getResponseLength(buf, blen, timeout)
+        length = self._getResponseLength(timeout)
+        buf = bytearray()
 
         # [RDY] 00 00 FF LEN LCS (TFI PD0 ... PDn) DCS 00
         while 1:
@@ -110,7 +111,7 @@ class pn532i2c(pn532Interface):
             time.sleep(1)
             t+=1
             if ((0 != timeout) && (t> timeout)):
-                return -1
+                return -1, buf
 
         if (0x00 != read() or # PREAMBLE
             0x00 != read() or # STARTCODE1
@@ -127,11 +128,11 @@ class pn532i2c(pn532Interface):
 
         cmd = self._command + 1 # response command
         if (PN532_PN532TOHOST != read() or (cmd) != read()):
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, buf
 
         length -= 2
         if (length > blen):
-            return PN532_NO_SPACE # not enough space
+            return PN532_NO_SPACE, buf  # not enough space
 
         print("read:  ")
         print('{:x]'.format(cmd))
@@ -147,12 +148,12 @@ class pn532i2c(pn532Interface):
         checksum = read()
         if (0 != (uint8_t)(sum + checksum)):
             print("checksum is not ok\n")
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, buf
         read() # POSTAMBLE
 
-        return length
+        return length, buf
 
-    def readAckFrame(self) -> int:
+    def _readAckFrame(self) -> int:
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
         ackBuf = []
 

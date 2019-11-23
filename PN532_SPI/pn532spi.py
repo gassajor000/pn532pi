@@ -28,7 +28,7 @@ class pn532spi(pn532Interface):
         self._command = 0
         self._ss = ss
         self._spi = SpiDev()
-        assert ss < 2, 'Chip select must be 1 or 0'
+        assert ss in [1, 0], 'Chip select must be 1 or 0'
 
     def begin(self):
         self._spi.open(RPI_BUS0, self._ss)
@@ -41,26 +41,26 @@ class pn532spi(pn532Interface):
         time.sleep(2)
         self._spi.cshigh = True
 
-    def writeCommand(self, header: str, hlen: int, body: str, blen: int) -> int:
+    def writeCommand(self, header: bytearray, body: bytearray) -> int:
         self._command = header[0]
-        self.writeFrame(header, hlen, body, blen)
+        self._writeFrame(header, body)
 
         timeout = PN532_ACK_WAIT_TIME
-        while (not self.isReady()):
+        while (not self._isReady()):
             time.sleep(1)
             timeout -= 1
             if (0 == timeout):
                 print("Time out when waiting for ACK\n")
                 return -2
-        if (self.readAckFrame()):
+        if (self._readAckFrame()):
             print("Invalid ACK\n")
             return PN532_INVALID_ACK
 
         return 0
 
-    def readResponse(self, buf: bytearray, blen: int, timeout: int):
+    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
         time = 0
-        while (not self.isReady()):
+        while (not self._isReady()):
             time.sleep(1)
             time += 1
             if (time > timeout):
@@ -70,6 +70,8 @@ class pn532spi(pn532Interface):
         time.sleep(1)
 
         result = 0
+        buf = bytearray()
+
         while (1):
             write(DATA_READ)
 
@@ -119,20 +121,21 @@ class pn532spi(pn532Interface):
             read() # POSTAMBLE
     
             result = length
+            break
 
         digitalWrite(self._ss, HIGH)
 
-        return result
+        return result, buf
 
-    def isReady(self) -> int:
+    def _isReady(self) -> bool:
         digitalWrite(self._ss, LOW)
 
         write(STATUS_READ)
         status = read() & 1
         digitalWrite(self._ss, HIGH)
-        return status
+        return bool(status)
 
-    def writeFrame(self, header: str, hlen: int, body: str, blen: int):
+    def _writeFrame(self, header: bytearray, body: bytearray):
         digitalWrite(self._ss, LOW)
         time.sleep(2) # wake up PN532
 
@@ -169,7 +172,7 @@ class pn532spi(pn532Interface):
 
         print('\n')
 
-    def readAckFrame(self):
+    def _readAckFrame(self):
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
         ackBuf = []
