@@ -1,4 +1,3 @@
-import binascii
 import time
 
 from PN532.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
@@ -102,16 +101,16 @@ class pn532spi(pn532Interface):
                 result = PN532_NO_SPACE # not enough space
                 break
     
-            sum = PN532_PN532TOHOST + cmd
+            dsum = PN532_PN532TOHOST + cmd
             data = self._spi.readbytes(length)
             buf += bytearray(data)
-            sum += sum(data)
+            dsum += sum(data)
 
             print(data)
             print('\n')
     
             checksum = self._get_byte()
-            if (0 != (sum + checksum) & 0xFf):
+            if (0 != (dsum + checksum) & 0xFF):
                 print("checksum is not ok\n")
                 result = PN532_INVALID_FRAME
                 break
@@ -128,54 +127,34 @@ class pn532spi(pn532Interface):
         return bool(status)
 
     def _writeFrame(self, header: bytearray, body: bytearray):
-        digitalWrite(self._ss, LOW)
-        time.sleep(2) # wake up PN532
+        self._spi.writebytes([DATA_WRITE, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2])
 
-        write(DATA_WRITE)
-        write(PN532_PREAMBLE)
-        write(PN532_STARTCODE1)
-        write(PN532_STARTCODE2)
+        length = len(header) + len(body) + 1  # length of data field: TFI + DATA
+        self._put_byte(length)
+        self._put_byte(~length + 1)  # checksum of length
 
-        length = hlen + blen + 1 # length of data field: TFI + DATA
-        write(length)
-        write(~length + 1) # checksum of length
-
-        write(PN532_HOSTTOPN532)
-        sum = PN532_HOSTTOPN532 # sum of TFI + DATA
+        self._put_byte(PN532_HOSTTOPN532)
+        dsum = PN532_HOSTTOPN532  # sum of TFI + DATA
 
         print("write: ")
 
-        for  i in range(hlen):
-            write(header[i])
-            sum += header[i]
+        self._spi.writebytes(list(header))
+        print(header)
+        dsum += sum(header)
 
-            print('{:x}'.format(header[i]))
-        for  i in range(blen):
-            write(body[i])
-            sum += body[i]
+        self._spi.writebytes(list(body))
+        print(body)
+        dsum += sum(body)
 
-            print('{:x}'.format(body[i]))
-
-        checksum = ~sum + 1 # checksum of TFI + DATA
-        write(checksum)
-        write(PN532_POSTAMBLE)
-
-        digitalWrite(self._ss, HIGH)
+        checksum = ~dsum + 1  # checksum of TFI + DATA
+        self._spi.writebytes([checksum, PN532_POSTAMBLE])
 
         print('\n')
 
     def _readAckFrame(self):
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
-        ackBuf = []
-
-        digitalWrite(_ss, LOW)
-        time.sleep(1)
-        write(DATA_READ)
-
-        for i in range(PN532_ACK):
-            ackBuf[i] = read()
-
-        digitalWrite(self._ss, HIGH)
+        self._put_byte(DATA_READ)
+        ackBuf = self._spi.readbytes(len(PN532_ACK))
 
         return ackBuf == PN532_ACK
