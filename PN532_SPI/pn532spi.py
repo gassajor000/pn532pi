@@ -1,3 +1,4 @@
+import binascii
 import time
 
 from PN532.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
@@ -17,12 +18,13 @@ class pn532spi(pn532Interface):
     SS0_GPIO8 = 0
     SS1_GPIO7 = 1
 
-    def write(self, data):
-        self._spi.transfer(data)
+    def _get_byte(self):
+        data = self._spi.readbytes(1)
+        assert data, "No bytes read!"
+        return data[0]
 
-    def read(self):
-        return self._spi.transfer(0)
-
+    def _put_byte(self, data: int):
+        self._spi.writebytes([data & 0xff])
 
     def __init__(self, ss: int):
         self._command = 0
@@ -34,12 +36,12 @@ class pn532spi(pn532Interface):
         self._spi.open(RPI_BUS0, self._ss)
         self._spi.mode = SPI_MODE0  # PN532 only supports mode0
         self._spi.lsbfirst = True
+        self._spi.cshigh = False  # Active low
         self._spi.max_speed_hz = 5000000 # 5 MHz
 
     def wakeup(self) -> None:
-        self._spi.cshigh = False
-        time.sleep(2)
-        self._spi.cshigh = True
+        # Chip select controlled by driver
+        self._spi._put_byte(0)
 
     def writeCommand(self, header: bytearray, body: bytearray) -> int:
         self._command = header[0]
@@ -66,30 +68,26 @@ class pn532spi(pn532Interface):
             if (time > timeout):
                 return PN532_TIMEOUT
 
-        digitalWrite(self._ss, LOW)
-        time.sleep(1)
-
         result = 0
         buf = bytearray()
 
         while (1):
-            write(DATA_READ)
+            self._spi.writebytes([DATA_READ])
 
-            if (0x00 != read() or # PREAMBLE
-                0x00 != read()  or # STARTCODE1
-                0xFF != read() # STARTCODE2
-                ):
+            start = self._spi.readbytes(3)
+            if start != [PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]:
     
                 result = PN532_INVALID_FRAME
                 break
     
-            length = read()
-            if (0 != (uint8_t)(length + read())): # checksum of length
+            length = self._get_byte()
+            l_checksum = self._get_byte()
+            if (0 != (length + l_checksum) & 0xFF):
                 result = PN532_INVALID_FRAME
                 break
     
             cmd = self._command + 1 # response command
-            if (PN532_PN532TOHOST != read() or (cmd) != read()):
+            if (PN532_PN532TOHOST != self._get_byte() or (cmd) != self._get_byte()):
                 result = PN532_INVALID_FRAME
                 break
     
@@ -98,41 +96,35 @@ class pn532spi(pn532Interface):
             length -= 2
             if (length > len):
                 for i in range(length):
-                        print_HEX(read()) # dump message
+                        print(self._get_byte()) # dump message
                 print("\nNot enough space\n")
-                read()
-                read()
+                self._spi.readbytes(2)
                 result = PN532_NO_SPACE # not enough space
                 break
     
             sum = PN532_PN532TOHOST + cmd
-            for  i in range(length):
-                buf[i] = read()
-                sum += buf[i]
-    
-                print_HEX(buf[i])
+            data = self._spi.readbytes(length)
+            buf += bytearray(data)
+            sum += sum(data)
+
+            print(data)
             print('\n')
     
-            checksum = read()
-            if (0 != (uint8_t)(sum + checksum)):
+            checksum = self._get_byte()
+            if (0 != (sum + checksum) & 0xFf):
                 print("checksum is not ok\n")
                 result = PN532_INVALID_FRAME
                 break
-            read() # POSTAMBLE
+            self._get_byte() # POSTAMBLE
     
             result = length
             break
 
-        digitalWrite(self._ss, HIGH)
-
         return result, buf
 
     def _isReady(self) -> bool:
-        digitalWrite(self._ss, LOW)
-
-        write(STATUS_READ)
-        status = read() & 1
-        digitalWrite(self._ss, HIGH)
+        self._put_byte(STATUS_READ)
+        status = self._get_byte() & 1
         return bool(status)
 
     def _writeFrame(self, header: bytearray, body: bytearray):
