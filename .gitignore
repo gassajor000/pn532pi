@@ -2,6 +2,7 @@
 !PN532*
 !NDEF*
 !test
+!quick2wire
 
 .DS_Store
 *.pyc
