@@ -1,5 +1,5 @@
 import time
-from quick2wire.i2c import I2CMaster, writing
+from quick2wire.i2c import I2CMaster, writing, reading
 
 from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
     PN532_INVALID_FRAME, PN532_POSTAMBLE, PN532_PN532TOHOST, PN532_NO_SPACE, PN532_ACK_WAIT_TIME, PN532_TIMEOUT, \
@@ -18,10 +18,11 @@ class pn532i2c(pn532Interface):
         self._command = 0
 
     def begin(self):
-        self._wire = I2CMaster()
+        self._wire = I2CMaster(self._bus)
 
     def wakeup(self):
         time.sleep(.5) # wait for all ready to manipulate pn532
+        return self._wire.transaction(reading(PN532_I2C_ADDRESS, 7))
 
     def writeCommand(self, header: bytearray, body: bytearray):
         self._command = header[0]
