@@ -40,7 +40,7 @@ class pn532spi(pn532Interface):
 
     def wakeup(self) -> None:
         # Chip select controlled by driver
-        self._spi._put_byte(0)
+        self._isReady()
 
     def writeCommand(self, header: bytearray, body: bytearray) -> int:
         self._command = header[0]
@@ -60,18 +60,18 @@ class pn532spi(pn532Interface):
         return 0
 
     def readResponse(self, timeout: int = 1000) -> (int, bytearray):
-        time = 0
+        timer = 0
         while (not self._isReady()):
             time.sleep(1)
-            time += 1
-            if (time > timeout):
+            timer += 1
+            if (timer > timeout):
                 return PN532_TIMEOUT
 
         result = 0
         buf = bytearray()
 
         while (1):
-            self._spi.writebytes([DATA_READ])
+            self._put_byte(DATA_READ)
 
             start = self._spi.readbytes(3)
             if start != [PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]:
@@ -142,9 +142,10 @@ class pn532spi(pn532Interface):
         print(header)
         dsum += sum(header)
 
-        self._spi.writebytes(list(body))
-        print(body)
-        dsum += sum(body)
+        if body:
+            self._spi.writebytes(list(body))
+            print(body)
+            dsum += sum(body)
 
         checksum = ~dsum + 1  # checksum of TFI + DATA
         self._spi.writebytes([checksum, PN532_POSTAMBLE])

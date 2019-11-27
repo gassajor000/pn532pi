@@ -168,8 +168,7 @@ class pn532i2c(pn532Interface):
         ackBuf = list(data[1:])
 
         if ackBuf != PN532_ACK:
-            print("Invalid ACK\n")
-            print(ackBuf)
+            print("Invalid ACK {}\n".format(ackBuf))
             return PN532_INVALID_ACK
 
         return 0
