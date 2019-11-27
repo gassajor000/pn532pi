@@ -127,30 +127,29 @@ class pn532spi(pn532Interface):
         return bool(status)
 
     def _writeFrame(self, header: bytearray, body: bytearray):
-        self._spi.writebytes([DATA_WRITE, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2])
+        data_out = [DATA_WRITE, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]
 
         length = len(header) + len(body) + 1  # length of data field: TFI + DATA
-        self._put_byte(length)
-        self._put_byte(~length + 1)  # checksum of length
+        data_out.append(length)
+        data_out.append((~length + 1) & 0xFF)
 
-        self._put_byte(PN532_HOSTTOPN532)
-        dsum = PN532_HOSTTOPN532  # sum of TFI + DATA
+        data_out.append(PN532_HOSTTOPN532)
+        dsum = PN532_HOSTTOPN532 + sum(header) + sum(body) # sum of TFI + DATA
 
-        print("write: ")
-
-        self._spi.writebytes(list(header))
-        print(header)
-        dsum += sum(header)
-
-        if body:
-            self._spi.writebytes(list(body))
-            print(body)
-            dsum += sum(body)
-
+        data_out += list(header)
+        data_out += list(body)
         checksum = ~dsum + 1  # checksum of TFI + DATA
-        self._spi.writebytes([checksum, PN532_POSTAMBLE])
 
-        print('\n')
+        data_out +=[checksum, PN532_POSTAMBLE]
+
+        print("writeCommand: {}    {}    {}".format(header, body, data_out))
+        try:
+            # send data
+            self._spi.writebytes(data_out)
+        except Exception as e:
+            print(e)
+            print("\nError writing frame\n")  # I2C max packet: 32 bytes
+            raise
 
     def _readAckFrame(self):
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
