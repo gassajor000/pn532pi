@@ -92,6 +92,9 @@ class pn532i2c(pn532Interface):
         length = self._getResponseLength(timeout)
         buf = bytearray()
 
+        if length < 0:
+            return length, buf
+
         # [RDY] 00 00 FF LEN LCS (TFI PD0 ... PDn) DCS 00
         while 1:
             responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, 6 + length + 2))

@@ -2,7 +2,7 @@ import time
 
 from PN532.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
     PN532_NO_SPACE, PN532_INVALID_ACK, PN532_TIMEOUT, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, \
-    PN532_HOSTTOPN532, PN532_POSTAMBLE
+    PN532_HOSTTOPN532, PN532_POSTAMBLE, REVERSE_BITS_ORDER
 from spidev import SpiDev
 
 STATUS_READ = 2
@@ -13,6 +13,11 @@ RPI_BUS0 = 0
 SPI_MODE0 = 0b0
 
 
+def _reverse_bits(data: bytearray) -> bytearray:
+    """Reverse bit order for all bytes in a byte array"""
+    return bytearray([REVERSE_BITS_ORDER(b) for b in data])
+
+
 class pn532spi(pn532Interface):
     SS0_GPIO8 = 0
     SS1_GPIO7 = 1
@@ -20,10 +25,23 @@ class pn532spi(pn532Interface):
     def _get_byte(self):
         data = self._spi.readbytes(1)
         assert data, "No bytes read!"
-        return data[0]
+        return REVERSE_BITS_ORDER(data[0])
 
     def _put_byte(self, data: int):
-        self._spi.writebytes([data & 0xff])
+        self._spi.writebytes([REVERSE_BITS_ORDER(data)])
+
+    def _send_bytes(self, data: bytearray) -> None:
+        self._spi.writebytes(list(_reverse_bits(data)))
+
+    def _receive_bytes(self, num: int) -> bytearray:
+        return _reverse_bits(self._spi.readbytes(num))
+
+    def _xfer_bytes(self, data: bytearray) -> bytearray:
+        return _reverse_bits(self._spi.xfer2(list(_reverse_bits(data))))
+
+    def _check_status(self) -> int:
+        data_out = list(_reverse_bits([STATUS_READ, 0]))
+        return _reverse_bits(self._spi.xfer2(data_out))[1]
 
     def __init__(self, ss: int):
         self._command = 0
@@ -34,7 +52,6 @@ class pn532spi(pn532Interface):
     def begin(self):
         self._spi.open(RPI_BUS0, self._ss)
         self._spi.mode = SPI_MODE0  # PN532 only supports mode0
-        self._spi.lsbfirst = True
         self._spi.cshigh = False  # Active low
         self._spi.max_speed_hz = 5000000 # 5 MHz
 
@@ -53,77 +70,81 @@ class pn532spi(pn532Interface):
             if (0 == timeout):
                 print("Time out when waiting for ACK\n")
                 return -2
-        if (self._readAckFrame()):
+        if (not self._readAckFrame()):
             print("Invalid ACK\n")
             return PN532_INVALID_ACK
 
         return 0
 
-    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
+    def _getResponseLength(self, timeout: int):
+        PN532_NACK = [0, 0, 0xFF, 0xFF, 0, 0]
         timer = 0
+
         while (not self._isReady()):
             time.sleep(1)
-            timer += 1
-            if (timer > timeout):
-                return PN532_TIMEOUT
+            timer+=1
+            if ((0 != timeout) and (timer > timeout)):
+                return -1          
 
+
+        data = self._xfer_bytes([DATA_READ] + [0 for i in range(5)])
+        data = data[1:]  # first byte is garbage
+        print('_getResponseLength length frame: {!r}'.format(data))
+
+        if data[:-2] != bytearray([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]):
+            print('Invalid Response frame: {}'.format(data))
+            return PN532_INVALID_FRAME
+
+        length = data[3]
+        l_checksum = data[4]
+        if (0 != (length + l_checksum) & 0xFF):
+            print('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, l_checksum))
+            return PN532_INVALID_FRAME
+
+        print('_getResponseLength length is {:d}'.format(length))
+
+        #  Not needed for SPI
+        # request for last respond msg again
+        # print('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
+        # self._send_bytes([DATA_WRITE] + PN532_NACK)
+
+        return length
+
+    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
+        timer = 0
+        buf = bytearray()        
         result = 0
-        buf = bytearray()
 
-        while (1):
-            self._put_byte(DATA_READ)
+        length = self._getResponseLength(timeout)
 
-            start = self._spi.readbytes(3)
-            if start != [PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]:
-    
-                result = PN532_INVALID_FRAME
-                break
-    
-            length = self._get_byte()
-            l_checksum = self._get_byte()
-            if (0 != (length + l_checksum) & 0xFF):
-                result = PN532_INVALID_FRAME
-                break
-    
-            cmd = self._command + 1 # response command
-            if (PN532_PN532TOHOST != self._get_byte() or (cmd) != self._get_byte()):
-                result = PN532_INVALID_FRAME
-                break
-    
-            print("read:  {:x}".format(cmd))
+        if length < 0:
+            return length, buf
 
-            length -= 2
-            if (length > len):
-                for i in range(length):
-                        print(self._get_byte()) # dump message
-                print("\nNot enough space\n")
-                self._spi.readbytes(2)
-                result = PN532_NO_SPACE # not enough space
-                break
-    
-            dsum = PN532_PN532TOHOST + cmd
-            data = self._spi.readbytes(length)
-            buf += bytearray(data)
-            dsum += sum(data)
+        data = self._xfer_bytes([DATA_READ] + [0 for i in range(length + 1)])   #  Total length - 1 for RW byte, SPI is full duplex
 
-            print(data)
-            print('\n')
-    
-            checksum = self._get_byte()
-            if (0 != (dsum + checksum) & 0xFF):
-                print("checksum is not ok\n")
-                result = PN532_INVALID_FRAME
-                break
-            self._get_byte() # POSTAMBLE
-    
-            result = length
-            break
+        cmd = self._command + 1 # response command
+        if (PN532_PN532TOHOST != data[0] or (cmd) != data[1]):
+            return PN532_INVALID_FRAME, buf
 
-        return result, buf
+        length -= 2
+
+        print("readResponse read command:  {:x}".format(cmd))
+
+        dsum = PN532_PN532TOHOST + cmd
+        buf = data[2:-2]
+        print('readResponse response: {!r}\n'.format(buf))
+        dsum += sum(buf)
+
+        checksum = data[-2]
+        if (0 != (dsum + checksum) & 0xFF):
+            print("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
+            return PN532_INVALID_FRAME, buf
+        # POSTAMBLE data [-1]
+
+        return length, buf
 
     def _isReady(self) -> bool:
-        self._put_byte(STATUS_READ)
-        status = self._get_byte() & 1
+        status = self._check_status() & 1
         return bool(status)
 
     def _writeFrame(self, header: bytearray, body: bytearray):
@@ -138,23 +159,23 @@ class pn532spi(pn532Interface):
 
         data_out += list(header)
         data_out += list(body)
-        checksum = ~dsum + 1  # checksum of TFI + DATA
+        checksum = (~dsum + 1) & 0xFF  # checksum of TFI + DATA
 
-        data_out +=[checksum, PN532_POSTAMBLE]
+        data_out += [checksum, PN532_POSTAMBLE]
 
         print("writeCommand: {}    {}    {}".format(header, body, data_out))
         try:
             # send data
-            self._spi.writebytes(data_out)
+            self._send_bytes(data_out)
         except Exception as e:
             print(e)
             print("\nError writing frame\n")  # I2C max packet: 32 bytes
             raise
 
     def _readAckFrame(self):
-        PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
+        """Returns true if ack was successfully read"""
+        PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 
-        self._put_byte(DATA_READ)
-        ackBuf = self._spi.readbytes(len(PN532_ACK))
-
-        return ackBuf == PN532_ACK
+        ackBuf = self._xfer_bytes([DATA_READ] + [0 for i in range(len(PN532_ACK))])
+        print("_readAckFrame: ack    {}".format(ackBuf[1:]))
+        return ackBuf[1:] == PN532_ACK
