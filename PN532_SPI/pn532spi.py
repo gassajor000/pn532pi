@@ -69,7 +69,7 @@ class pn532spi(pn532Interface):
             timeout -= 1
             if (0 == timeout):
                 print("Time out when waiting for ACK\n")
-                return -2
+                return PN532_TIMEOUT
         if (not self._readAckFrame()):
             print("Invalid ACK\n")
             return PN532_INVALID_ACK
