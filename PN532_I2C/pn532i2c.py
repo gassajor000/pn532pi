@@ -21,7 +21,7 @@ class pn532i2c(pn532Interface):
         self._wire = I2CMaster(self._bus)
 
     def wakeup(self):
-        time.sleep(.5) # wait for all ready to manipulate pn532
+        time.sleep(.05) # wait for all ready to manipulate pn532
         return self._wire.transaction(writing(PN532_I2C_ADDRESS, [0]))
 
     def writeCommand(self, header: bytearray, body: bytearray):
@@ -65,7 +65,7 @@ class pn532i2c(pn532Interface):
               # check first byte --- status
                 break # PN532 is ready
 
-            time.sleep(1)
+            time.sleep(.001)    # sleep 1 ms
             timer+=1
             if ((0 != timeout) and (timer > timeout)):
                 return -1
@@ -103,7 +103,7 @@ class pn532i2c(pn532Interface):
               # check first byte --- status
                 break # PN532 is ready
 
-            time.sleep(1)
+            time.sleep(.001)     # sleep 1 ms
             t+=1
             if ((0 != timeout) and (t> timeout)):
                 return -1, buf
@@ -113,14 +113,14 @@ class pn532i2c(pn532Interface):
             PN532_STARTCODE2 != data[3]    # STARTCODE2
         ):
             print('Invalid Response frame: {}'.format(data))
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, buf
 
         length = data[4]
 
         if (0 != (length + data[5] & 0xFF)):
          # checksum of length
             print('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, data[5]))
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, buf
 
         cmd = self._command + 1 # response command
         if (PN532_PN532TOHOST != data[6] or (cmd) != data[7]):
@@ -158,7 +158,7 @@ class pn532i2c(pn532Interface):
               # check first byte --- status
                 break # PN532 is ready
 
-            time.sleep(1)
+            time.sleep(.001)    # sleep 1 ms
             t+=1
             if (t > PN532_ACK_WAIT_TIME):
                 print("Time out when waiting for ACK\n")
