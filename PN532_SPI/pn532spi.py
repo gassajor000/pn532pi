@@ -65,9 +65,9 @@ class pn532spi(pn532Interface):
 
         timeout = PN532_ACK_WAIT_TIME
         while (not self._isReady()):
-            time.sleep(1)
+            time.sleep(.001)    # sleep 1 ms
             timeout -= 1
-            if (0 == timeout):
+            if (0 >= timeout):
                 print("Time out when waiting for ACK\n")
                 return PN532_TIMEOUT
         if (not self._readAckFrame()):
@@ -81,7 +81,7 @@ class pn532spi(pn532Interface):
         timer = 0
 
         while (not self._isReady()):
-            time.sleep(1)
+            time.sleep(.001)    # sleep 1 ms
             timer+=1
             if ((0 != timeout) and (timer > timeout)):
                 return -1          

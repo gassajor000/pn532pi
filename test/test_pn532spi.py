@@ -87,19 +87,108 @@ class TestPn532spi(TestCase):
         for frame in frames:
             header, body, output = frame
             MOCK_SPI.reset_mock()
-            MOCK_SPI.read_buf = [0] + PN532_ACK
+            MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK
             pn532.writeCommand(header=header, body=body)
             MOCK_SPI._mock_writebytes.assert_called_once_with(output)
 
 
     def test_invalid_ack(self):
         """writeCommand waits for an ack"""
-        pass
+        pn532 = pn532spi(0)
+
+        # correct ack
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK
+        ret = pn532.writeCommand(header=bytearray([2]), body=bytearray())
+        self.assertEqual(0, ret, "writeCommand failed!")
+
+        # invalid ack
+        MOCK_SPI.read_buf = [0, 128, 128]
+        ret = pn532.writeCommand(header=bytearray([2]), body=bytearray())
+        self.assertEqual(-1, ret, "writeCommand succeeded with invalid ack!")
 
     def test_wait_for_ready(self):
-        """writeCommand waits for a status of 1"""
-        pass
+        """writeCommand waits for a status of 1 before reading ack"""
+        pn532 = pn532spi(0)
+
+        # no ready/ack
+        ret = pn532.writeCommand(header=bytearray([2]), body=bytearray())
+        self.assertEqual(-2, ret, "writeCommand did not timeout waiting for ack!")
+
+        # ready + ack
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK
+        ret = pn532.writeCommand(header=bytearray([2]), body=bytearray())
+        self.assertEqual(0, ret, "writeCommand failed!")
 
     def test_readResponse(self):
         """readResponse correctly parses a response frame"""
-        pass
+        pn532 = pn532spi(0)
+
+        rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
+                 '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
+        frames = [ # cmd    resp data    resp frame
+            (bytearray([1]), bytearray([70, 80]), [0, 0, 255, rev_b['04'], rev_b['~04'], rev_b['D5'], rev_b['02'], rev_b['70'], rev_b['80'], rev_b['~027080'], 0]),
+            (bytearray([2]), bytearray([60]), [0, 0, 255, rev_b['03'], rev_b['~03'], rev_b['D5'], rev_b['03'], rev_b['60'], rev_b['~0360'], 0]),
+        ]
+        for frame in frames:
+            cmd, resp_data, resp_frame = frame
+            MOCK_SPI.reset_mock()
+            MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK + [0, 128, 128] + resp_frame
+            pn532.writeCommand(header=cmd, body=bytearray())
+
+            length, resp = pn532.readResponse()
+            self.assertGreaterEqual(length, 0, "readResponse failed!")
+            self.assertEqual(len(resp), length, "length did not match response length")
+            self.assertEqual(resp_data, resp, "Incorrect response")
+
+    def test_invalid_length(self):
+        """readResponse rejects frame with invalid length or invalid length checksum"""
+        pn532 = pn532spi(0)
+
+        rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
+                 '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
+        # Bad length checksum
+        cmd = bytearray([1])
+        bad_len_checksum = [0, 0, 255, rev_b['04'], rev_b['~03'], rev_b['D5'], rev_b['02'], rev_b['70'], rev_b['80'], rev_b['~027080'], 0]
+        bad_len = [0, 0, 255, rev_b['03'], rev_b['~03'], rev_b['D5'], rev_b['02'], rev_b['70'], rev_b['80'], rev_b['~027080'], 0]
+
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK + [0, 128, 128] + bad_len_checksum
+        pn532.writeCommand(header=cmd, body=bytearray())
+        length, resp = pn532.readResponse()
+        self.assertGreaterEqual(length, -3, "readResponse did not return Invalid Frame")
+
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK + [0, 128, 128] + bad_len
+        pn532.writeCommand(header=cmd, body=bytearray())
+        length, resp = pn532.readResponse()
+        self.assertGreaterEqual(length, -3, "readResponse did not return Invalid Frame")
+
+    def test_invalid_preamble(self):
+        """readResponse rejects frame with invalid preamble"""
+        pn532 = pn532spi(0)
+
+        rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
+                 '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
+        # Bad length checksum
+        cmd = bytearray([1])
+        bad_preamble = [0, 2, 250, rev_b['04'], rev_b['~04'], rev_b['D5'], rev_b['02'], rev_b['70'], rev_b['80'],
+                            rev_b['~027080'], 0]
+
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK + [0, 128, 128] + bad_preamble
+        pn532.writeCommand(header=cmd, body=bytearray())
+        length, resp = pn532.readResponse()
+        self.assertGreaterEqual(length, -3, "readResponse did not return Invalid Frame")
+
+    def test_invalid_checksum(self):
+        """readResponse rejects frame with invalid checksum"""
+        pn532 = pn532spi(0)
+
+        rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
+                 '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
+        # Bad length checksum
+        cmd = bytearray([1])
+        bad_checksum = [0, 0, 255, rev_b['04'], rev_b['~04'], rev_b['D5'], rev_b['02'], rev_b['70'], rev_b['80'],
+                            rev_b['~6023'], 0]
+
+        MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK + [0, 128, 128] + bad_checksum
+        pn532.writeCommand(header=cmd, body=bytearray())
+        length, resp = pn532.readResponse()
+        self.assertGreaterEqual(length, -3, "readResponse did not return Invalid Frame")
