@@ -24,7 +24,7 @@ class pn532i2c(pn532Interface):
         time.sleep(.05) # wait for all ready to manipulate pn532
         return self._wire.transaction(writing(PN532_I2C_ADDRESS, [0]))
 
-    def writeCommand(self, header: bytearray, body: bytearray):
+    def writeCommand(self, header: bytearray, body: bytearray = bytearray()):
         self._command = header[0]
         data_out = [PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]
 

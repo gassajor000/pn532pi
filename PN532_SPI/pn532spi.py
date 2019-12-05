@@ -59,7 +59,7 @@ class pn532spi(pn532Interface):
         # Chip select controlled by driver
         self._isReady()
 
-    def writeCommand(self, header: bytearray, body: bytearray) -> int:
+    def writeCommand(self, header: bytearray, body: bytearray = bytearray()) -> int:
         self._command = header[0]
         self._writeFrame(header, body)
 

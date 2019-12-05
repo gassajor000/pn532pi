@@ -25,7 +25,7 @@ class pn532Interface:
     def wakeup(self):
         raise NotImplementedError('This function is virtual')
 
-    def writeCommand(self, header: bytearray, body: bytearray) -> int:
+    def writeCommand(self, header: bytearray, body: bytearray = bytearray()) -> int:
         """
         Write a command and check ack
         :param header:  packet header
