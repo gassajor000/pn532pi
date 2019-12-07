@@ -1,4 +1,4 @@
-*/
+
 !PN532*
 !NDEF*
 !test*
@@ -6,3 +6,5 @@
 
 .DS_Store
 *.pyc
+*.sr
+.idea/
