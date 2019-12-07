@@ -397,7 +397,7 @@ class pn532:
     
     # **** ISO14443A Commands *****
 
-    def readPassiveTargetID(self, cardbaudrate: int, timeout: int, inlist: bool) -> (bool, bytearray):
+    def readPassiveTargetID(self, cardbaudrate: int, timeout: int = 1000, inlist: bool = False) -> (bool, bytearray):
         """
         Waits for an ISO14443A target to enter the field
 
@@ -417,7 +417,7 @@ class pn532:
 
 
         # read data packet
-        status, response = self._interface.readResponse()
+        status, response = self._interface.readResponse(timeout)
         if (status < 0):
             return False, bytearray()
         
@@ -876,10 +876,11 @@ class pn532:
         if (self._interface.writeCommand(header, body)):
             return False
 
-        if (0 > self._interface.readResponse(len(self.pn532_packetbuffer))):
+        status, response = self._interface.readResponse()
+        if (0 > status):
             return False
 
-        if (0 != self.pn532_packetbuffer[0]):
+        if (0 != response[0]):
             return False
 
         return True
@@ -934,7 +935,7 @@ class pn532:
             DMSG("Could not receive response\n")
             return -2, no_data, no_data, 0
 
-        # Check NbTg (pn532_packetbuffer[7])
+        # Check NbTg (response[7])
         if (response[0] == 0):
             DMSG("No card had detected\n")
             return 0, no_data, no_data, 0
@@ -998,7 +999,7 @@ class pn532:
             DMSG("Could not receive response\n")
             return -3, no_data
 
-        # Check status (pn532_packetbuffer[0])
+        # Check status (response[0])
         if ((response[0] & 0x3F) != 0):
             DMSG("Status code indicates an error: ")
             DMSG_HEX(response[0])
@@ -1263,7 +1264,7 @@ class pn532:
             return -2
 
 
-        # Check status (pn532_packetbuffer[0])
+        # Check status (response[0])
         if ((response[0] & 0x3F)!=0):
             DMSG("Status code indicates an error: ")
             DMSG_HEX(response[7])
