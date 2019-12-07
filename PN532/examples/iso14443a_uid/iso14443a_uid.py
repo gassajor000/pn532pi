@@ -16,7 +16,7 @@ from PN532_SPI.pn532spi import pn532spi
 
 # When the number after #if set as 1, it will be switch to SPI Mode
 if False:
-    PN532_SPI = pn532spi(SPI, 10)
+    PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
     nfc = pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
 elif False:
@@ -65,12 +65,15 @@ def loop():
         print("")
         # Wait 1 second before continuing
         time.sleep(1)
+        return True
     else:
         # PN532 probably timed out waiting for a card
         print("Timed out waiting for a card")
+        return False
 
 
 if __name__ == '__main__':
     setup()
-    while True:
-      loop()
+    found = loop()
+    while not found:
+      found = loop()
