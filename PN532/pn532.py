@@ -320,11 +320,11 @@ class pn532:
         #   b2              Interface Mode Pins (not used ... bus select pins)
 
         DMSG("P3 GPIO: ") 
-        DMSG_HEX(response[7])
+        DMSG_HEX(response[0])
         DMSG("P7 GPIO: ") 
-        DMSG_HEX(response[8])
+        DMSG_HEX(response[1])
         DMSG("I0I1 GPIO: ") 
-        DMSG_HEX(response[9])
+        DMSG_HEX(response[2])
         DMSG("\n")
 
         return response[0]
@@ -332,6 +332,7 @@ class pn532:
     def SAMConfig(self) -> bool:
         """
         Configures the SAM (Secure Access Module)
+        :returns: True if success, False if error
         """
         header = bytearray([PN532_COMMAND_SAMCONFIGURATION,
                             0x01,   # normal mode
@@ -344,7 +345,7 @@ class pn532:
             return False
 
         status, response = self._interface.readResponse()
-        return (0 < status)
+        return (status >= 0)
     
 
     def setPassiveActivationRetries(self, maxRetries: int) -> bool:
@@ -354,7 +355,7 @@ class pn532:
         :param  maxRetries:    0xFF to wait forever, 0x00..0xFE to timeout
                               after mxRetries
 
-        :returns: 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
         header = bytearray([PN532_COMMAND_RFCONFIGURATION,
                             5,  # Config item 5 (MaxRetries)
@@ -367,7 +368,7 @@ class pn532:
             return False  # no ACK
 
         status, response = self._interface.readResponse()
-        return (status > 0)
+        return (status >=  0)
 
     def setRFField(self, autoRFCA: int, rFOnOff: int) -> bool:
         """
@@ -757,11 +758,11 @@ class pn532:
 
     def inDataExchange(self, send: bytearray) -> (bool, bytearray):
         """
-                @brief  Exchanges an APDU with the currently inlisted peer
+                Exchanges an APDU with the currently inlisted peer
 
         :param  send:            Pointer to data to send
-        @param  response        Pointer to response data
-        @param  responseLength  Pointer to the response data length
+        :param  response:        Pointer to response data
+        :param  responseLength:  Pointer to the response data length
         """
 
         header = bytearray([
@@ -787,9 +788,8 @@ class pn532:
 
     def inListPassiveTarget(self) -> bool:
         """
-            # !
-        @brief  'InLists' a passive target. PN532 acting as reader/initiator,
-                peer acting as card/responder.
+            'InLists' a passive target. PN532 acting as reader/initiator,
+            peer acting as card/responder.
         """
         header = bytearray([
             PN532_COMMAND_INLISTPASSIVETARGET,
@@ -899,8 +899,8 @@ class pn532:
 
     def felica_Polling(self, systemCode: int, requestCode: int, timeout: int) -> (int, bytearray, bytearray, int):
         """
-                @brief  Poll FeliCa card. PN532 acting as reader/initiator,
-                    peer acting as card/responder.
+            Poll FeliCa card. PN532 acting as reader/initiator,
+            peer acting as card/responder.
             :param timeout:
             :param  systemCode:             Designation of System Code. When sending FFFFh as System Code,
                                                all FeliCa cards can return response.
