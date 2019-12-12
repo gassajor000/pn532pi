@@ -14,17 +14,22 @@ from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
 
-# When the number after #if set as 1, it will be switch to SPI Mode
-if False:
+
+# Set the desired interface to True
+SPI = False
+I2C = False
+HSU = False
+
+if SPI:
     PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
     nfc = pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
-elif False:
+elif HSU:
     PN532_HSU = pn532hsu(Serial1)
     nfc = pn532(PN532_HSU)
 
 # When the number after #if & #elif set as 0, it will be switch to I2C Mode
-elif True:
+elif I2C:
     PN532_I2C = pn532i2c(1)
     nfc = pn532(PN532_I2C)
 
@@ -35,7 +40,7 @@ def setup():
     versiondata = nfc.getFirmwareVersion()
     if not versiondata:
         print("Didn't find PN53x board")
-        return  # halt
+        raise RuntimeError("Didn't find PN53x board")  # halt
 
     # Got ok data, print it out!
     print("Found chip PN5 {:#x} Firmware ver. {:d}.{:d}".format((versiondata >> 24) & 0xFF, (versiondata >> 16) & 0xFF,
@@ -60,9 +65,7 @@ def loop():
     if (success):
         print("Found a card!")
         print("UID Length: {:d}".format(len(uid)))
-        print("UID Value: ")
-        print(uid)
-        print("")
+        print("UID Value: {}".format(uid))
         # Wait 1 second before continuing
         time.sleep(1)
         return True

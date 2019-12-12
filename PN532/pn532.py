@@ -481,7 +481,7 @@ class pn532:
         else:
             return ((uiBlock + 1) % 16 == 0)
 
-    def mifareclassic_AuthenticateBlock(self, uid: bytearray, blockNumber: int, keyNumber: int, keyData: str) -> bool:
+    def mifareclassic_AuthenticateBlock(self, uid: bytearray, blockNumber: int, keyNumber: int, keyData: bytearray) -> bool:
         """
                 Tries to authenticate a block of memory on a MIFARE card using the
         INDATAEXCHANGE command.  See section 7.3.8 of the PN532 User Manual
