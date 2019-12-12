@@ -25,7 +25,7 @@ from PN532_SPI.pn532spi import pn532spi
 
 # Set the desired interface to True
 SPI = False
-I2C = False
+I2C = True
 HSU = False
 
 if SPI:
@@ -69,7 +69,6 @@ def loop():
     if (success):
         #  Display some basic information about the card
         print("Found an ISO14443A card")
-        print("  UID Length: ")
         print("UID Length: {:d}".format(len(uid)))
         print("UID Value: {}".format(uid))
 
@@ -103,6 +102,7 @@ def loop():
                     print("Reading Block 4:")
                     PrintHexChar(data, 16)
                     print("")
+                    return True
 
                     #  Wait a bit before reading the card again
                     time.sleep(1)
@@ -122,12 +122,14 @@ def loop():
                 #  Data seems to have been read ... spit it out
                 PrintHexChar(data, 4)
                 print("")
+                return True
 
                 #  Wait a bit before reading the card again
                 time.sleep(1)
             else:
                 print("Ooops ... unable to read the requested page!?")
 
+    return False
 
 if __name__ == '__main__':
     setup()
