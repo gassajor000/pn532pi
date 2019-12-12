@@ -1,6 +1,5 @@
 from PN532.macLink import macLink
 from PN532.pn532 import pn532
-from PN532.pn532Interface import pn532Interface
 
 # LLCP PDU Type Values
 
@@ -34,15 +33,8 @@ class llcp:
 
     def __init__(self, interface: pn532):
         self.link = macLink(interface)
-        self.headerBuf, self.headerBufLen = self.link.getHeaderBuffer()
         self.ns = 0
         self.nr = 0
-
-
-    def getHeaderBuffer(self) -> (int, str):
-        buf, blen = self.link.getHeaderBuffer()
-        blen -= 3       # I PDU header has 3 bytes
-        return buf, blen
 
     def activate(self, timeout: int):
         return self.link.activateAsTarget(timeout)
@@ -57,14 +49,15 @@ class llcp:
         # Get CONNECT PDU
         print("wait for a CONNECT PDU\n")
         while 1:
-            if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+            status, data = self.link.read()
+            if (2 > status):
                 return -1
 
-            type = getPType(self.headerBuf)
+            type = getPType(data)
             if (PDU_CONNECT == type):
                 break
             elif (PDU_SYMM == type):
-                if ( not self.link.write(self.SYMM_PDU, sizeof(self.SYMM_PDU))):
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
                     return -2
             else:
                 return -3
@@ -72,11 +65,13 @@ class llcp:
 
         # Put CC PDU
         print("put a CC(Connection Complete) PDU to response the CONNECT PDU\n")
-        ssap = getDSAP(self.headerBuf)
-        dsap = getSSAP(self.headerBuf)
-        self.headerBuf[0] = (dsap << 2) + ((PDU_CC >> 2) & 0x3)
-        self.headerBuf[1] = ((PDU_CC & 0x3) << 6) + ssap
-        if (not self.link.write(self.headerBuf, 2)):
+        ssap = getDSAP(data)
+        dsap = getSSAP(data)
+        header = bytearray([
+        (dsap << 2) + ((PDU_CC >> 2) & 0x3),
+        ((PDU_CC & 0x3) << 6) + ssap,
+        ])
+        if (not self.link.write(header)):
             return -2
 
         return 1
@@ -87,14 +82,15 @@ class llcp:
         # Get DISC PDU
         print("wait for a DISC PDU\n")
         while 1:
-            if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+            status, data = self.link.read()
+            if (2 > status):
                 return -1
 
-            type = getPType(self.headerBuf)
+            type = getPType(data)
             if (PDU_DISC == type):
                 break
             elif (PDU_SYMM == type):
-                if (not self.link.write(self.SYMM_PDU, len(self.SYMM_PDU))):
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
                     return -2
             else:
                 return -3
@@ -104,9 +100,11 @@ class llcp:
         print("put a DM(Disconnect Mode) PDU to response the DISC PDU\n")
         # ssap = getDSAP(headerBuf)
         # dsap = getSSAP(headerBuf)
-        self.headerBuf[0] = (self.dsap << 2) + (PDU_DM >> 2)
-        self.headerBuf[1] = ((PDU_DM & 0x3) << 6) + self.ssap
-        if (not self.link.write(self.headerBuf, 2)):
+        header = bytearray([
+            (self.dsap << 2) + (PDU_DM >> 2),
+            ((PDU_DM & 0x3) << 6) + self.ssap,
+        ])
+        if (not self.link.write(header)):
             return -2
 
         return 1
@@ -121,32 +119,36 @@ class llcp:
         self.nr = 0
     
         # try to get a SYMM PDU
-        if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+        status, data = self.link.read()
+        if (2 > status):
             return -1
-        type = getPType(self.headerBuf)
+        type = getPType(data)
         if (PDU_SYMM != type):
             return -1
 
         # put a CONNECT PDU
-        self.headerBuf[0] = (LLCP_DEFAULT_DSAP << 2) + (PDU_CONNECT >> 2)
-        self.headerBuf[1] = ((PDU_CONNECT & 0x03) << 6) + LLCP_DEFAULT_SSAP
-        body = "  urn:nfc:sn:snep"
+        header = bytearray([
+            (LLCP_DEFAULT_DSAP << 2) + (PDU_CONNECT >> 2),
+            ((PDU_CONNECT & 0x03) << 6) + LLCP_DEFAULT_SSAP,
+        ])
+        body = bytearray("  urn:nfc:sn:snep")
         body[0] = 0x06
         body[1] = len(body) - 2 - 1
-        if (self.link.write(self.headerBuf, 2, body, len(body) - 1)):
+        if (self.link.write(header, body)):
             return -2
 
         # wait for a CC PDU
         print("wait for a CC PDU\n")
         while 1:
-            if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+            status, data = self.link.read()
+            if (2 > status):
                 return -1
 
-            type = getPType(self.headerBuf)
+            type = getPType(data)
             if (PDU_CC == type):
                 break
             elif (PDU_SYMM == type):
-                if (not self.link.write(self.SYMM_PDU, len(self.SYMM_PDU))):
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
                     return -2
             else:
                 return -3
@@ -157,111 +159,110 @@ class llcp:
         type = 0
     
         # try to get a SYMM PDU
-        if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+        status, data = self.link.read()
+        if (2 > status):
             return -1
-        type = getPType(self.headerBuf)
+        type = getPType(data)
         if (PDU_SYMM != type):
             return -1
 
         # put a DISC PDU
-        self.headerBuf[0] = (LLCP_DEFAULT_DSAP << 2) + (PDU_DISC >> 2)
-        self.headerBuf[1] = ((PDU_DISC & 0x03) << 6) + LLCP_DEFAULT_SSAP
-        if (self.link.write(self.headerBuf, 2)):
+        header = bytearray([
+            (LLCP_DEFAULT_DSAP << 2) + (PDU_DISC >> 2),
+            ((PDU_DISC & 0x03) << 6) + LLCP_DEFAULT_SSAP,
+        ])
+        if (self.link.write(header)):
             return -2
 
         # wait for a DM PDU
         print("wait for a DM PDU\n")
         while 1:
-            if (2 > self.link.read(self.headerBuf, self.headerBufLen)):
+            status, data = self.link.read()
+            if (2 > status):
                 return -1
 
-            type = getPType(self.headerBuf)
+            type = getPType(data)
             if (PDU_CC == type):
                 break
             elif (PDU_DM == type):
-                if (self.link.write(self.SYMM_PDU, len(self.SYMM_PDU))):
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
                     return -2
             else:
                 return -3
 
         return 1
 
-    def write(self, header: str, hlen: int, body: str, blen: int) -> bool:
-        type = 0
-        buf = [0, 0, 0]
-    
+    def write(self, header: bytearray, body: bytearray) -> bool:
+
         if (self.mode):
             # Get a SYMM PDU
-            if (2 != self.link.read(buf, len(buf))):
+            status, data = self.link.read()
+            if (2 != status):
                 return False
 
-        if (self.headerBufLen < (hlen + 3)):
+        header.reverse()
+
+        full_header = bytearray([
+            (self.dsap << 2) + (PDU_I >> 2),
+            ((PDU_I & 0x3) << 6) + self.ssap,
+            (self.ns << 4) + self.nr,
+        ]) + header
+
+        if (not self.link.write(full_header, body)):
             return False
 
-        for i in range(hlen).__reversed__():
-            self.headerBuf[i + 3] = header[i]
-
-        self.headerBuf[0] = (self.dsap << 2) + (PDU_I >> 2)
-        self.headerBuf[1] = ((PDU_I & 0x3) << 6) + self.ssap
-        self.headerBuf[2] = (self.ns << 4) + nr
-        if (self.link.write(self.headerBuf, 3 + hlen, body, blen)):
-            return False
-
-        self.ns+=1
+        self.ns += 1
     
         # Get a RR PDU
         status = 0
         while 1:
-            status = self.link.read(self.headerBuf, self.headerBufLen)
+            status, data = self.link.read()
             if (2 > status):
                 return False
 
-            type = getPType(self.headerBuf)
+            type = getPType(data)
             if (PDU_RR == type):
                 break
             elif (PDU_SYMM == type):
-                if (self.link.write(self.SYMM_PDU, len(self.SYMM_PDU))):
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
                     return False
             else:
                 return False
 
-        if (self.link.write(self., len(self.SYMM_PDU))):
+        if (not self.link.write(bytearray(self.SYMM_PDU))):
             return False
 
         return True
 
-    def read(self, buf: str, length: int) -> int:
-        type = 0
-        self.status = 0
-    
+    def read(self) -> (int, bytearray):
         # Get INFO PDU
         while 1:
-            status = self.link.read(buf, length)
+            status, data = self.link.read()
             if (2 > status):
-                return -1
+                return (-1, bytearray())
 
-            type = getPType(buf)
+            type = getPType(data)
             if (PDU_I == type):
                 break
             elif (PDU_SYMM == type):
-                if (not self.link.write(self.SYMM_PDU, len(self.SYMM_PDU))):
-                    return -2
+                if (not self.link.write(bytearray(self.SYMM_PDU))):
+                    return -2, bytearray()
             else:
-                return -3
+                return -3, bytearray()
 
         blen = status - 3
-        self.ssap = getDSAP(buf)
-        self.dsap = getSSAP(buf)
+        self.ssap = getDSAP(data)
+        self.dsap = getSSAP(data)
 
-        self.headerBuf[0] = (self.dsap << 2) + (PDU_RR >> 2)
-        self.headerBuf[1] = ((PDU_RR & 0x3) << 6) + self.ssap
-        self.headerBuf[2] = (buf[2] >> 4) + 1
-        if (not self.link.write(self.headerBuf, 3)):
-            return -2
+        header = bytearray([
+        (self.dsap << 2) + (PDU_RR >> 2),
+        ((PDU_RR & 0x3) << 6) + self.ssap,
+        (data[2] >> 4) + 1,
+        ])
 
-        for i in range(blen):
-            buf[i] = buf[i + 3]
+        if (not self.link.write(header)):
+            return -2, bytearray()
 
-        self.nr+=1
+        self.nr += 1
     
-        return blen
+        return (blen, data[3:])

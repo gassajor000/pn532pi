@@ -8,13 +8,10 @@ class macLink:
     def activateAsTarget(self, timeout: int) -> int:
         self.pn532.begin()
         self.pn532.SAMConfig()
-        return self.pn532.tgInitAsTarget(timeout)
+        return self.pn532.tgInitAsTargetP2P(timeout)
 
-    def  getHeaderBuffer(self) -> (str, int):
-        return self.pn532.getBuffer(len)
+    def write(self, header: bytearray, body: bytearray = bytearray()) -> bool:
+        return self.pn532.tgSetData(header, body)
 
-    def write(self, header: str, hlen: int, body: str, blen: int) -> bool:
-        return self.pn532.tgSetData(header, hlen, body, blen)
-
-    def read(self, buf: str, blen: int) -> int:
-        return self.pn532.tgGetData(buf, blen)
+    def read(self) -> (int, bytearray):
+        return self.pn532.tgGetData()
