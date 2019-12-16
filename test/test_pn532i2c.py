@@ -14,7 +14,7 @@ def mock_writing(addr, data):
 
 
 class MockI2C(mock.Mock):
-    """Mock for SpiDev interface"""
+    """Mock for quick2wire interface"""
     read_buf = []
     write_buf = []
     def _get_data(self, num):

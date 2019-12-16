@@ -143,7 +143,7 @@ def PrintHex(data: bytearray):
     print("".join('{:2X}'.format(x) for x in data))
 
 
-def PrintHexChar(data: str, numBytes: int):
+def PrintHexChar(data: bytearray, numBytes: int):
     """
     Prints a hexadecimal value in plain characters, along with
         the char equivalents in the following format
@@ -190,7 +190,7 @@ class pn532:
 
         :returns:  The chip's firmware version and ID
         """
-        if (self._interface.writeCommand(bytearray([PN532_COMMAND_GETFIRMWAREVERSION]), bytearray())):
+        if (self._interface.writeCommand(bytearray([PN532_COMMAND_GETFIRMWAREVERSION]))):
             return 0
 
         # read data packet
@@ -252,7 +252,7 @@ class pn532:
 
     def writeGPIO(self,  pinstate: int) -> bool:
         """
-        Writes an 8-bit value that sets the state of the PN532's GPIO pins
+        Writes an 8-bit value that sets the state of the PN532's GPIO  (P3)
 
         :warning: This function is provided exclusively for board testing and
                  is dangerous since it will throw an error if any pin other
@@ -292,7 +292,7 @@ class pn532:
 
     def readGPIO(self) -> int:
         """
-            Reads the state of the PN532's GPIO pins
+            Reads the state of the PN532's GPIO pins (P3)
 
             :returns: An 8-bit value containing the pin state where:
 
@@ -345,7 +345,7 @@ class pn532:
             return False
 
         status, response = self._interface.readResponse()
-        return (status >= 0)
+        return status >= 0
     
 
     def setPassiveActivationRetries(self, maxRetries: int) -> bool:

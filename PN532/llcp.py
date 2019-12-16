@@ -192,7 +192,7 @@ class llcp:
 
         return 1
 
-    def write(self, header: bytearray, body: bytearray) -> bool:
+    def write(self, header: bytearray, body: bytearray = bytearray()) -> bool:
 
         if (self.mode):
             # Get a SYMM PDU
