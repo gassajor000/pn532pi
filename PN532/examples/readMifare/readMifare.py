@@ -19,7 +19,7 @@
 """
 import time
 
-from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A, PrintHexChar
+from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS, PrintHexChar
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
 
@@ -64,7 +64,7 @@ def loop():
     #  Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
     #  'uid' will be populated with the UID, and uidLength will indicate
     #  if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
-    success, uid = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A)
+    success, uid = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A_106KBPS)
 
     if (success):
         #  Display some basic information about the card

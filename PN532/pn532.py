@@ -45,8 +45,12 @@ PN532_COMMAND_TGGETTARGETSTATUS     = (0x8A)
 PN532_RESPONSE_INDATAEXCHANGE       = (0x41)
 PN532_RESPONSE_INLISTPASSIVETARGET  = (0x4B)
 
-
-PN532_MIFARE_ISO14443A              = (0x00)
+# Baud Rate selectors
+PN532_MIFARE_ISO14443A_106KBPS      = (0x00)
+PN532_FELICA_212KBPS                = (0x01)
+PN532_FELICA_424KBPS                = (0x02)
+PN532_MIFARE_ISO14443B_106KBPS      = (0x03)
+PN532_JEWEL_106KBPS                 = (0x04)
 
 # Mifare Commands
 MIFARE_CMD_AUTH_A                   = (0x60)
@@ -370,31 +374,31 @@ class pn532:
         status, response = self._interface.readResponse()
         return (status >=  0)
 
-    def setRFField(self, autoRFCA: int, rFOnOff: int) -> bool:
+    def setRFField(self, autoRFCA: bool, RFOn: bool) -> bool:
         """
         Sets the RFon/off uint8_t of the RFConfiguration register
 
-        :param  autoRFCA:    0x00 No check of the external field before
+        :param  autoRFCA:    False: No check of the external field before
                             activation
 
-                            0x02 Check the external field before
+                            True: Check the external field before
                             activation
 
-        :param  rFOnOff:     0x00 Switch the RF field off, 0x01 switch the RF
-                            field on
+        :param  RFOn:    False Switch the RF field off, True: switch the RF
+                        field on
 
-        :returns:    1 if everything executed properly, 0 for an error
+        :returns:    True if everything executed properly, False for an error
         """
         header = bytearray([
             PN532_COMMAND_RFCONFIGURATION,
             1,
-            (autoRFCA | rFOnOff) & 0xFF
+            (0x2 if autoRFCA else 0) | (0x1 if RFOn else 0)
         ])
         if(self._interface.writeCommand(header)):
             return False  # no ACK
 
         status, response = self._interface.readResponse()
-        return (status > 0)
+        return (status >= 0)
     
     # **** ISO14443A Commands *****
 
@@ -579,8 +583,7 @@ class pn532:
         """
 
         #  Prepare the first command
-        header = [PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE, blockNumber] + data[:16]
-        header += data[:16]
+        header = bytearray([PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE, blockNumber]) + data[:16]
 
         #  Send the command 
         if (self._interface.writeCommand(header)):
@@ -629,7 +632,7 @@ class pn532:
         :param  sectorNumber:  The sector that the URI record should be written
                               to (can be 1..15 for a 1K card)
         :param  uriIdentifier: The uri identifier code (0 = none, 0x01 =
-                              "http:#www.", etc.)
+                              "http://www.", etc.)
         :param  url:           The uri text to write (max 38 characters).
 
         :return: True if everything executed properly, False for an error
@@ -655,6 +658,7 @@ class pn532:
         sectorbuffer2 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         sectorbuffer3 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         sectorbuffer4 = bytearray([0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+        # TODO: This can probably be simplified...
         if (length <= 6) :
             # Unlikely we'll get a url this short, but why not ...
             sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:length] + sectorbuffer1[9 + length:]
@@ -666,12 +670,12 @@ class pn532:
         elif ((length > 7) and (length <= 22)):
             # Url fits in two blocks
             sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
-            sectorbuffer2 = url_bytes[length - 7:] + sectorbuffer2[length - 7:]
+            sectorbuffer2 = url_bytes[7:] + sectorbuffer2[length - 7:]
             sectorbuffer2[length - 7] = 0xFE
         elif (length == 23):
             # 0xFE needs to be wrapped around to final block
             sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
-            sectorbuffer2 = url_bytes[length - 7:]
+            sectorbuffer2 = url_bytes[7:]
             sectorbuffer3[0] = 0xFE
         else:
             # Url fits in three blocks
@@ -897,7 +901,7 @@ class pn532:
         status, response = self._interface.readResponse()
         return status >= 0
 
-    def felica_Polling(self, systemCode: int, requestCode: int, timeout: int) -> (int, bytearray, bytearray, int):
+    def felica_Polling(self, systemCode: int, requestCode: int, timeout: int = 1000) -> (int, bytearray, bytearray, int):
         """
             Poll FeliCa card. PN532 acting as reader/initiator,
             peer acting as card/responder.
@@ -907,7 +911,7 @@ class pn532:
             :param  requestCode:            Designation of Request Data as follows:
                                                  00h: No Request
                                                  01h: System Code request (to acquire System Code of the card)
-                                                 02h: Communication perfomance request
+                                                 02h: Communication performance request
             :returns: (status, idm, pwm, systemCodeResponse)
                         status                 0 = no card, 1 = FeliCa card detected, <0 = error
                         idm                    IDm of the card (8 bytes)
@@ -921,7 +925,7 @@ class pn532:
         FELICA_CMD_POLLING,
         (systemCode >> 8) & 0xFF,
         systemCode & 0xFF,
-        requestCode,
+        requestCode & 0xFF,
         0,
         ])
         no_data = bytearray()
@@ -985,7 +989,7 @@ class pn532:
             return -1, no_data
 
         header = bytearray([
-            0x40,  # PN532_COMMAND_INDATAEXCHANGE
+            PN532_COMMAND_INDATAEXCHANGE,
             self.inListedTag,
             commandlength + 1,
         ])
@@ -1021,7 +1025,6 @@ class pn532:
         """
             Sends FeliCa Request Service command
 
-            :param  numNode:           length of the nodeCodeList
             :param  nodeCodeList:      Node codes(Big Endian)
             :returns:   (status, keyVersions)
                         status      1: Success, < 0: error
@@ -1057,7 +1060,7 @@ class pn532:
 
     def felica_RequestResponse(self) -> (int, int):
         """
-        Sends FeliCa Request Service command
+        Sends FeliCa Request Response command
 
         :returns:     (status, mode)
                     status  1: Success, < 0: error
@@ -1080,14 +1083,12 @@ class pn532:
         mode = response[9]
         return 1, mode
 
-    def felica_ReadWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int]) -> (int, List[List[int]]):
+    def felica_ReadWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int]) -> (int, List[bytearray]):
 
         """
-            @brief  Sends FeliCa Read Without Encryption command
+            Sends FeliCa Read Without Encryption command
 
-            :param  numService:         Length of the serviceCodeList
             :param  serviceCodeList:    Service Code List (Big Endian)
-            :param  numBlock:           Length of the blockList
             :param  blockList:          Block List (Big Endian, This API only accepts 2-byte block list element)
             :returns:       (status, blockData)
                               status    1: Success, < 0: error
@@ -1137,21 +1138,17 @@ class pn532:
         k = 12
         blockData = []
         for i in range(numBlock):
-            blockData.append([])
-            for j in range(8):
-                blockData[i].append(response[k])
-                k += 1
+            start = 12+ i * 16
+            blockData.append(response[start: start + 16])
 
         return 1, blockData
 
-    def felica_WriteWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int], blockData: List[List[int]]) -> int:
+    def felica_WriteWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int], blockData: List[bytearray]) -> int:
 
         """
             Sends FeliCa Write Without Encryption command
 
-            :param  numService:         Length of the serviceCodeList
             :param  serviceCodeList:    Service Code List (Big Endian)
-            :param  numBlock:           Length of the blockList
             :param  blockList:          Block List (Big Endian, This API only accepts 2-byte block list element)
             :returns:       status    1: Success, < 0: error
         """
@@ -1164,12 +1161,7 @@ class pn532:
             DMSG("numBlock is too large\n")
             return -2
 
-        cmd = bytearray()
-        cmd.append(FELICA_CMD_WRITE_WITHOUT_ENCRYPTION)
-        for i in range(8):
-            cmd.append(self._felicaIDm[i])
-
-        cmd.append(numService)
+        cmd = bytearray([FELICA_CMD_WRITE_WITHOUT_ENCRYPTION]) + self._felicaIDm[:8] + bytearray([numService])
         for i in range(numService):
             cmd.append(serviceCodeList[i] & 0xFF)
             cmd.append((serviceCodeList[i] >> 8) & 0xff)
@@ -1206,7 +1198,7 @@ class pn532:
 
     def felica_RequestSystemCode(self) -> (int, List[int]):
         """
-                Sends FeliCa Request System Code command
+        Sends FeliCa Request System Code command
 
         :returns:   (status, systemCodeList)
                     status          1: Success, < 0: error
@@ -1241,7 +1233,7 @@ class pn532:
     # ************************************************************************
     def felica_Release(self) -> int:
         """
-                @brief  Release FeliCa card
+        Release FeliCa card
         :returns:   1: Success, < 0: error
         """
     
