@@ -874,7 +874,7 @@ class pn532:
         return length, response
     
 
-    def tgSetData(self, header: bytearray, body: bytearray) -> bool:
+    def tgSetData(self, header: bytearray, body: bytearray = bytearray()) -> bool:
         header = bytearray([PN532_COMMAND_TGSETDATA]) + header
 
         if (self._interface.writeCommand(header, body)):
@@ -889,7 +889,7 @@ class pn532:
 
         return True
 
-    def inRelease(self, relevantTarget: int) -> bool:
+    def inRelease(self, relevantTarget: int = 0) -> bool:
         header = bytearray([
             PN532_COMMAND_INRELEASE,
             relevantTarget,
