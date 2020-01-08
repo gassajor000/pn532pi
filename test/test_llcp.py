@@ -115,8 +115,8 @@ class TestLlcp(TestCase):
         header = _get_header(link)
         self.assertEqual(b'\x11\x60', header)
 
-    def test_write(self):
-        """write correctly encapsulates the passed data in an llcp frame"""
+    def test_read(self):
+        """read correctly parses an incoming llcp data frame and sends an RR packet"""
         frames = [
             (8, b'\x03\x00\x10data1'),
             (9, b'\x03\x00\x24data10'),
@@ -134,8 +134,8 @@ class TestLlcp(TestCase):
             nr = (packet[2] >> 4) + 1
             self.assertEqual(b'\x03\x40' + bytearray([nr]), header, 'Invalid read response')
 
-    def test_read(self):
-        """read correctly parses an incoming llcp data frame and sends an RR packet"""
+    def test_write(self):
+        """write correctly encapsulates the passed data in an llcp frame"""
         frames = [
             (2, b'\x03\x40'),
         ]

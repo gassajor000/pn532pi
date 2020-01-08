@@ -10,7 +10,7 @@ SNEP_RESPONSE_SUCCESS	= 0x81
 SNEP_RESPONSE_REJECT	= 0xFF
 
 
-class SNEP:
+class snep:
     def __init__(self, interface: pn532):
         self.llcp = llcp(interface)
 
@@ -52,7 +52,7 @@ class SNEP:
         # check SNEP version
         if (SNEP_DEFAULT_VERSION != rbuf[0]):
             DMSG("The received SNEP message's major version is different\n")
-            # To-do: send Unsupported Version response
+            # Todo: send Unsupported Version response
             return -4
     
         # expect a put request
