@@ -170,7 +170,7 @@ class TestPn532(TestCase):
         self.assertRegex(header, b'\x32\x01\x02', 'Incorrect setRFField command')
 
     def test_tgSetData(self):
-        """tgSetData correctly sets the RF on/RF off field"""
+        """tgSetData correctly writes data"""
         frames = [
             (0, b'\x00'),
             (0, b'\x02')
@@ -188,6 +188,25 @@ class TestPn532(TestCase):
 
         status = nfc.tgSetData(header=b'\x01\x02', body=b'\xaa\xbb')
         self.assertFalse(status, 'tgSetData succeeded when it should have failed!')
+
+    def test_tgGetData(self):
+        """tgGetData correctly reads data"""
+        frames = [
+            (6, b'\x00abcde'),
+            (6, b'\x02abcde'),
+        ]
+        interface = _mock_interface(resp_frames=frames)
+        nfc = pn532(interface)
+
+        status, data = nfc.tgGetData()
+        self.assertEqual(5, status, 'tgGetData failed!')
+        self.assertEqual(b'abcde', data, 'Invalid data returned')
+
+        header = _get_header(interface)
+        self.assertRegex(header, b'\x86', 'Incorrect tgGetData command')
+
+        status, _ = nfc.tgGetData()
+        self.assertEqual(-5, status, 'tgGetData failed!')
 
     def test_mifareclassic_AuthenticateBlock(self):
         """mifareclassic_AuthenticateBlock correctly authenticates a block"""
