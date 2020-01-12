@@ -1,6 +1,6 @@
 """
     created by Jordan Gassaway, 1/5/2020
-    Test for llcp class functions
+    Test for snep class functions
 """
 from unittest import TestCase, mock
 
@@ -28,7 +28,7 @@ def _get_body(interface):
     return interface.write.call_args[0][1]
 
 
-class TestLlcp(TestCase):
+class TestSnep(TestCase):
     def test_read(self):
         """read correctly interprets a snep packet"""
         frames = [

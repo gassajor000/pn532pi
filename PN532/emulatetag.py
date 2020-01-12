@@ -59,10 +59,11 @@ RESPCMD_END_OF_FILE_BEFORE_REACHED_LE_BYTES = 4
 class EmulateTag:
     def __init__(self, interface: pn532):
         self.pn532 = interface
-        self.uid = 0
+        self.uid = bytearray()
         self.tagWrittenByInitiator = False
         self.tagWriteable = True
         self.updateNdefCallback = None
+        self.currentFile = TAGFILE_NONE
         self.ndef_file = bytearray()
 
     def init(self) -> bool:
@@ -120,7 +121,7 @@ class EmulateTag:
             0  # length of historical bytes
         ])
 
-        if (self.uid != 0):
+        if (self.uid != b''):
             # if uid is set copy 3 bytes to nfcid1
             command[4] = self.uid[0]
             command[5] = self.uid[1]
@@ -148,7 +149,7 @@ class EmulateTag:
 
         self.tagWrittenByInitiator = False
 
-        currentFile = TAGFILE_NONE
+        self.currentFile = TAGFILE_NONE
         runLoop = True
 
         while (runLoop):
@@ -158,6 +159,7 @@ class EmulateTag:
                 self.pn532.inRelease()
                 return True
 
+            # TODO: Pretty sure we can leverage these better
             p1 = rx_data[C_APDU_P1]
             p2 = rx_data[C_APDU_P2]
             lc = rx_data[C_APDU_LC]
@@ -173,29 +175,30 @@ class EmulateTag:
                             rx_data[C_APDU_DATA + 1] == 0x03 or rx_data[C_APDU_DATA + 1] == 0x04)):
                         out_buf = self.setResponse(RESPCMD_COMMAND_COMPLETE)
                         if (rx_data[C_APDU_DATA + 1] == 0x03):
-                            currentFile = TAGFILE_CC
+                            self.currentFile = TAGFILE_CC
                         elif (rx_data[C_APDU_DATA + 1] == 0x04):
-                            currentFile = TAGFILE_NDEF
+                            self.currentFile = TAGFILE_NDEF
                     else:
                         out_buf = self.setResponse(RESPCMD_TAG_NOT_FOUND)
                 elif p1 == C_APDU_P1_SELECT_BY_NAME:
                     ndef_tag_application_name_v2 = bytearray([0, 0x7, 0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01])
                     if (ndef_tag_application_name_v2 == rx_data[
                                                         C_APDU_P2: C_APDU_P2 + len(ndef_tag_application_name_v2)]):
+                        self.currentFile = TAGFILE_NDEF     # Pretty sure we need this here?
                         out_buf = self.setResponse(RESPCMD_COMMAND_COMPLETE)
                     else:
                         DMSG("function not supported\n")
                         out_buf = self.setResponse(RESPCMD_FUNCTION_NOT_SUPPORTED)
             elif rx_data[C_APDU_INS] == ISO7816_READ_BINARY:
-                if currentFile == TAGFILE_NONE:
+                if self.currentFile == TAGFILE_NONE:
                     out_buf = self.setResponse(RESPCMD_TAG_NOT_FOUND)
-                elif currentFile == TAGFILE_CC:
+                elif self.currentFile == TAGFILE_CC:
                     if (p1p2_length > NDEF_MAX_LENGTH):
                         out_buf = self.setResponse(RESPCMD_END_OF_FILE_BEFORE_REACHED_LE_BYTES)
                     else:
                         out_buf = compatibility_container[p1p2_length: p1p2_length + lc]
                         out_buf += self.setResponse(RESPCMD_COMMAND_COMPLETE)
-                elif currentFile == TAGFILE_NDEF:
+                elif self.currentFile == TAGFILE_NDEF:
                     if (p1p2_length > NDEF_MAX_LENGTH):
                         out_buf = self.setResponse(RESPCMD_END_OF_FILE_BEFORE_REACHED_LE_BYTES)
                     else:
@@ -208,7 +211,7 @@ class EmulateTag:
                     if (p1p2_length > NDEF_MAX_LENGTH):
                         out_buf = self.setResponse(RESPCMD_MEMORY_FAILURE)
                     else:
-                        self.ndef_file =  self.ndef_file[:p1p2_length] + rx_data[C_APDU_DATA: C_APDU_DATA + lc]
+                        self.ndef_file = self.ndef_file[:p1p2_length] + rx_data[C_APDU_DATA: C_APDU_DATA + lc] + self.ndef_file[p1p2_length + lc:]
                         out_buf = self.setResponse(RESPCMD_COMMAND_COMPLETE)
                         self.tagWrittenByInitiator = True
 
@@ -229,22 +232,14 @@ class EmulateTag:
     def setResponse(self, cmd: int) -> (bytearray):
         buf = bytearray()
         if cmd == RESPCMD_COMMAND_COMPLETE:
-            buf[0] = R_APDU_SW1_COMMAND_COMPLETE
-            buf[1] = R_APDU_SW2_COMMAND_COMPLETE
-            return buf
+            buf = bytearray([R_APDU_SW1_COMMAND_COMPLETE, R_APDU_SW2_COMMAND_COMPLETE])
         elif cmd == RESPCMD_TAG_NOT_FOUND:
-            buf[0] = R_APDU_SW1_NDEF_TAG_NOT_FOUND
-            buf[1] = R_APDU_SW2_NDEF_TAG_NOT_FOUND
-            return buf
+            buf = bytearray([R_APDU_SW1_NDEF_TAG_NOT_FOUND, R_APDU_SW2_NDEF_TAG_NOT_FOUND])
         elif cmd == RESPCMD_FUNCTION_NOT_SUPPORTED:
-            buf[0] = R_APDU_SW1_FUNCTION_NOT_SUPPORTED
-            buf[1] = R_APDU_SW2_FUNCTION_NOT_SUPPORTED
-            return buf
+            buf = bytearray([R_APDU_SW1_FUNCTION_NOT_SUPPORTED, R_APDU_SW2_FUNCTION_NOT_SUPPORTED])
         elif cmd == RESPCMD_MEMORY_FAILURE:
-            buf[0] = R_APDU_SW1_MEMORY_FAILURE
-            buf[1] = R_APDU_SW2_MEMORY_FAILURE
-            return buf
+            buf = bytearray([R_APDU_SW1_MEMORY_FAILURE, R_APDU_SW2_MEMORY_FAILURE])
         elif cmd == RESPCMD_END_OF_FILE_BEFORE_REACHED_LE_BYTES:
-            buf[0] = R_APDU_SW1_END_OF_FILE_BEFORE_REACHED_LE_BYTES
-            buf[1] = R_APDU_SW2_END_OF_FILE_BEFORE_REACHED_LE_BYTES
-            return buf
+            buf = bytearray([R_APDU_SW1_END_OF_FILE_BEFORE_REACHED_LE_BYTES,
+                             R_APDU_SW2_END_OF_FILE_BEFORE_REACHED_LE_BYTES])
+        return buf
