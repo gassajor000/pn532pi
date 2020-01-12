@@ -1,6 +1,6 @@
-## NFC library for Arduino
+## NFC library for Raspberry Pi
 
-This is an Arduino library for PN532 to use NFC technology.
+This is a Raspberry Pi library for PN532 to use NFC technology.
 It works with
 
 + [NFC Shield](http://goo.gl/Cac2OH)
@@ -8,20 +8,20 @@ It works with
 + [PN532 NFC/RFID controller breakout board](http://goo.gl/tby9Sw)
 
 ### Features
-+ Support I2C, SPI and HSU of PN532
++ Support I2C, SPI and HSU (TODO) of PN532
 + Read/write Mifare Classic Card
-+ Works with [Don's NDEF Library](http://goo.gl/jDjsXl)
 + Support Peer to Peer communication(exchange data with android 4.0+)
 + Support [mbed platform](http://goo.gl/kGPovZ)
 
 ### Getting Started
 1. Download [zip file](http://goo.gl/F6beRM) and 
 extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
-2. Downlaod [Don's NDEF library](http://goo.gl/ewxeAe) and extract it intro Arduino's libraries.
+2. TODO: Downlaod [Don's NDEF library](http://goo.gl/ewxeAe) and extract it intro Arduino's libraries.
 3. Follow the examples of the two libraries.
 
 ### To do
 + Card emulation
++ Works with [Don's NDEF Library](http://goo.gl/jDjsXl)
 
 ### Contribution
 It's based on [Adafruit_NFCShield_I2C](http://goo.gl/pk3FdB). 
