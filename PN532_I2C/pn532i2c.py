@@ -1,4 +1,6 @@
 import time
+
+from PN532.pn532_log import DMSG
 from quick2wire.i2c import I2CMaster, writing, reading
 
 from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
@@ -41,14 +43,14 @@ class pn532i2c(pn532Interface):
 
         data_out += [checksum, PN532_POSTAMBLE]
 
-        print("writeCommand: {}    {}    {}".format(header, body, data_out))
+        DMSG("writeCommand: {}    {}    {}".format(header, body, data_out))
 
         try:
             # send data
             self._wire.transaction(writing(PN532_I2C_ADDRESS, tuple(data_out)))
         except Exception as e:
-            print(e)
-            print("\nToo many data to send, I2C doesn't support such a big packet\n")  # I2C max packet: 32 bytes
+            DMSG(e)
+            DMSG("\nToo many data to send, I2C doesn't support such a big packet\n")  # I2C max packet: 32 bytes
             return PN532_INVALID_FRAME
 
         return self._readAckFrame()
@@ -60,7 +62,7 @@ class pn532i2c(pn532Interface):
         while 1:
             responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, 6))
             data = bytearray(responses[0])
-            print('_getResponseLength length frame: {!r}'.format(data))
+            DMSG('_getResponseLength length frame: {!r}'.format(data))
             if data[0] & 0x1:
               # check first byte --- status
                 break # PN532 is ready
@@ -75,14 +77,14 @@ class pn532i2c(pn532Interface):
             PN532_STARTCODE1 != data[2] or # STARTCODE1
             PN532_STARTCODE2 != data[3]    # STARTCODE2
         ):
-            print('Invalid Length frame: {}'.format(data))
+            DMSG('Invalid Length frame: {}'.format(data))
             return PN532_INVALID_FRAME
 
         length = data[4]
-        print('_getResponseLength length is {:d}'.format(length))
+        DMSG('_getResponseLength length is {:d}'.format(length))
 
         # request for last respond msg again
-        print('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
+        DMSG('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
         self._wire.transaction(writing(PN532_I2C_ADDRESS, PN532_NACK))
 
         return length
@@ -112,14 +114,14 @@ class pn532i2c(pn532Interface):
             PN532_STARTCODE1 != data[2] or # STARTCODE1
             PN532_STARTCODE2 != data[3]    # STARTCODE2
         ):
-            print('Invalid Response frame: {}'.format(data))
+            DMSG('Invalid Response frame: {}'.format(data))
             return PN532_INVALID_FRAME, buf
 
         length = data[4]
 
         if (0 != (length + data[5] & 0xFF)):
          # checksum of length
-            print('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, data[5]))
+            DMSG('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, data[5]))
             return PN532_INVALID_FRAME, buf
 
         cmd = self._command + 1 # response command
@@ -128,16 +130,16 @@ class pn532i2c(pn532Interface):
 
         length -= 2
 
-        print("readResponse read command:  {:x}".format(cmd))
+        DMSG("readResponse read command:  {:x}".format(cmd))
 
         dsum = PN532_PN532TOHOST + cmd
         buf = data[8:-2]
-        print('readResponse response: {!r}\n'.format(buf))
+        DMSG('readResponse response: {!r}\n'.format(buf))
         dsum += sum(buf)
 
         checksum = data[-2]
         if (0 != (dsum + checksum) & 0xFF):
-            print("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
+            DMSG("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
             return PN532_INVALID_FRAME, buf
         # POSTAMBLE data [-1]
 
@@ -146,9 +148,9 @@ class pn532i2c(pn532Interface):
     def _readAckFrame(self) -> int:
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
-        print("wait for ack at : ")
-        print(time.time())
-        print('\n')
+        DMSG("wait for ack at : ")
+        DMSG(time.time())
+        DMSG('\n')
 
         t = 0
         while 1:
@@ -161,17 +163,17 @@ class pn532i2c(pn532Interface):
             time.sleep(.001)    # sleep 1 ms
             t+=1
             if (t > PN532_ACK_WAIT_TIME):
-                print("Time out when waiting for ACK\n")
+                DMSG("Time out when waiting for ACK\n")
                 return PN532_TIMEOUT
 
-        print("ready at : ")
-        print(time.time())
-        print('\n')
+        DMSG("ready at : ")
+        DMSG(time.time())
+        DMSG('\n')
 
         ackBuf = list(data[1:])
 
         if ackBuf != PN532_ACK:
-            print("Invalid ACK {}\n".format(ackBuf))
+            DMSG("Invalid ACK {}\n".format(ackBuf))
             return PN532_INVALID_ACK
 
         return 0

@@ -5,6 +5,8 @@ from PN532.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVA
     PN532_HOSTTOPN532, PN532_POSTAMBLE, REVERSE_BITS_ORDER
 from spidev import SpiDev
 
+from PN532.pn532_log import DMSG
+
 STATUS_READ = 2
 DATA_WRITE = 1
 DATA_READ = 3
@@ -68,10 +70,10 @@ class pn532spi(pn532Interface):
             time.sleep(.001)    # sleep 1 ms
             timeout -= 1
             if (0 >= timeout):
-                print("Time out when waiting for ACK\n")
+                DMSG("Time out when waiting for ACK\n")
                 return PN532_TIMEOUT
         if (not self._readAckFrame()):
-            print("Invalid ACK\n")
+            DMSG("Invalid ACK\n")
             return PN532_INVALID_ACK
 
         return 0
@@ -89,23 +91,23 @@ class pn532spi(pn532Interface):
 
         data = self._xfer_bytes([DATA_READ] + [0 for i in range(5)])
         data = data[1:]  # first byte is garbage
-        print('_getResponseLength length frame: {!r}'.format(data))
+        DMSG('_getResponseLength length frame: {!r}'.format(data))
 
         if data[:-2] != bytearray([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]):
-            print('Invalid Response frame: {}'.format(data))
+            DMSG('Invalid Response frame: {}'.format(data))
             return PN532_INVALID_FRAME
 
         length = data[3]
         l_checksum = data[4]
         if (0 != (length + l_checksum) & 0xFF):
-            print('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, l_checksum))
+            DMSG('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, l_checksum))
             return PN532_INVALID_FRAME
 
-        print('_getResponseLength length is {:d}'.format(length))
+        DMSG('_getResponseLength length is {:d}'.format(length))
 
         #  Not needed for SPI
         # request for last respond msg again
-        # print('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
+        # DMSG('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
         # self._send_bytes([DATA_WRITE] + PN532_NACK)
 
         return length
@@ -128,16 +130,16 @@ class pn532spi(pn532Interface):
 
         length -= 2
 
-        print("readResponse read command:  {:x}".format(cmd))
+        DMSG("readResponse read command:  {:x}".format(cmd))
 
         dsum = PN532_PN532TOHOST + cmd
         buf = data[2:-2]
-        print('readResponse response: {!r}\n'.format(buf))
+        DMSG('readResponse response: {!r}\n'.format(buf))
         dsum += sum(buf)
 
         checksum = data[-2]
         if (0 != (dsum + checksum) & 0xFF):
-            print("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
+            DMSG("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
             return PN532_INVALID_FRAME, buf
         # POSTAMBLE data [-1]
 
@@ -163,13 +165,13 @@ class pn532spi(pn532Interface):
 
         data_out += [checksum, PN532_POSTAMBLE]
 
-        print("writeCommand: {}    {}    {}".format(header, body, data_out))
+        DMSG("writeCommand: {}    {}    {}".format(header, body, data_out))
         try:
             # send data
             self._send_bytes(data_out)
         except Exception as e:
-            print(e)
-            print("\nError writing frame\n")  # I2C max packet: 32 bytes
+            DMSG(e)
+            DMSG("\nError writing frame\n")  # I2C max packet: 32 bytes
             raise
 
     def _readAckFrame(self):
@@ -177,5 +179,5 @@ class pn532spi(pn532Interface):
         PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 
         ackBuf = self._xfer_bytes([DATA_READ] + [0 for i in range(len(PN532_ACK))])
-        print("_readAckFrame: ack    {}".format(ackBuf[1:]))
+        DMSG("_readAckFrame: ack    {}".format(ackBuf[1:]))
         return ackBuf[1:] == PN532_ACK

@@ -15,11 +15,12 @@
     Page 4 is read by default since this is the first 'general-
     purpose' page on the tags.
 
-    To enable debug message, define DEBUG in PN532/PN532_debug.h
+    To enable debug message, define DEBUG in PN532/pn532_log.h
 """
 import time
 
-from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS, PrintHexChar
+from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
+from PN532.pn532_log import PrintHexChar
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
 

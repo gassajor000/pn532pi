@@ -6,7 +6,7 @@
     Note that you need the baud rate to be 115200 because we need to print
     out the data and read from the card at the same time! 
 
-    To enable debug message, set DEBUG in PN532/PN532_debug.h
+    To enable debug message, set DEBUG in PN532/PN532_log.h
 """
 import time
 

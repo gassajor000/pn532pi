@@ -2,6 +2,7 @@ from PN532.macLink import macLink
 from PN532.pn532 import pn532
 
 # LLCP PDU Type Values
+from PN532.pn532_log import DMSG
 
 PDU_SYMM = 0x00
 PDU_PAX = 0x01
@@ -68,7 +69,7 @@ class llcp:
         self.nr = 0
     
         # Get CONNECT PDU
-        print("wait for a CONNECT PDU\n")
+        DMSG("wait for a CONNECT PDU\n")
         while 1:
             status, data = self.link.read()
             if (2 > status):
@@ -85,7 +86,7 @@ class llcp:
 
 
         # Put CC PDU
-        print("put a CC(Connection Complete) PDU to response the CONNECT PDU\n")
+        DMSG("put a CC(Connection Complete) PDU to response the CONNECT PDU\n")
         ssap = getDSAP(data)
         dsap = getSSAP(data)
         header = buildHeader(dsap, PDU_CC, ssap)
@@ -98,7 +99,7 @@ class llcp:
         type = 0
     
         # Get DISC PDU
-        print("wait for a DISC PDU\n")
+        DMSG("wait for a DISC PDU\n")
         while 1:
             status, data = self.link.read()
             if (2 > status):
@@ -115,7 +116,7 @@ class llcp:
 
 
         # Put DM PDU
-        print("put a DM(Disconnect Mode) PDU to response the DISC PDU\n")
+        DMSG("put a DM(Disconnect Mode) PDU to response the DISC PDU\n")
         # ssap = getDSAP(headerBuf)
         # dsap = getSSAP(headerBuf)
         header = buildHeader(self.dsap, PDU_DM, self.ssap)
@@ -150,7 +151,7 @@ class llcp:
             return -2
 
         # wait for a CC PDU
-        print("wait for a CC PDU\n")
+        DMSG("wait for a CC PDU\n")
         while 1:
             status, data = self.link.read()
             if (2 > status):
@@ -184,7 +185,7 @@ class llcp:
             return -2
 
         # wait for a DM PDU
-        print("wait for a DM PDU\n")
+        DMSG("wait for a DM PDU\n")
         while 1:
             status, data = self.link.read()
             if (2 > status):

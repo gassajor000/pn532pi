@@ -9,6 +9,8 @@ from typing import List
 from PN532.pn532Interface import pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
+from PN532.pn532_log import DMSG, DMSG_HEX
+
 PN532_COMMAND_DIAGNOSE              = (0x00)
 PN532_COMMAND_GETFIRMWAREVERSION    = (0x02)
 PN532_COMMAND_GETGENERALSTATUS      = (0x04)
@@ -123,51 +125,6 @@ FELICA_READ_MAX_BLOCK_NUM           = 12 # for typical FeliCa card
 FELICA_WRITE_MAX_SERVICE_NUM        = 16
 FELICA_WRITE_MAX_BLOCK_NUM          = 10 # for typical FeliCa card
 FELICA_REQ_SERVICE_MAX_NODE_NUM     = 32
-
-
-DEBUG = False
-
-
-def DMSG(msg):
-    if DEBUG:
-        print(msg)
-
-
-def DMSG_HEX(char):
-    if DEBUG:
-        print('%x' % char)
-
-
-def PrintHex(data: bytearray):
-    """
-        Prints a hexadecimal value in plain characters
-
-        :param data:      data to print
-    """
-    print("".join('{:2X}'.format(x) for x in data))
-
-
-def PrintHexChar(data: bytearray, numBytes: int):
-    """
-    Prints a hexadecimal value in plain characters, along with
-        the char equivalents in the following format
-
-        00 00 00 00 00 00  ......
-
-    :param data: data to print
-    """
-    for i in range(numBytes):
-        print(" {:2X}".format(data[i]))
-
-    print("    ")
-    for i in range(numBytes):
-        c = data[i]
-        if (c <= 0x1f or c > 0x7f):
-            print(".")
-        else:
-            print("%c" % c)
-
-        print("\n")
 
 
 class pn532:
