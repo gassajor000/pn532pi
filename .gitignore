@@ -1,5 +1,11 @@
-*/
+
 !PN532*
 !NDEF*
+!test*
+!quick2wire*
 
 .DS_Store
+*.pyc
+*.sr
+.idea/
+.vscode/

@@ -1,4 +1,4 @@
-## NFC library for Arduino
+## NFC library for Raspberry Pi
 
 This is a port of [Yihui Xiong's PN532 Library](https://github.com/Seeed-Studio/PN532) for using the PN532 chip with Raspberry Pi. 
 
@@ -8,12 +8,12 @@ This is a port of [Yihui Xiong's PN532 Library](https://github.com/Seeed-Studio/
 ### Features
 + Support all interfaces of PN532 (I2C, SPI, HSU )
 + Read/write Mifare Classic Card
-+ Works with [Don's NDEF Library](http://goo.gl/jDjsXl)
 + Communicate with android 4.0+([Lists of devices supported](https://github.com/Seeed-Studio/PN532/wiki/List-of-devices-supported))
 + Support [mbed platform](http://goo.gl/kGPovZ)
 + Card emulation (NFC Type 4 tag)
 
 ### To Do
++ Works with [Don's NDEF Library](http://goo.gl/jDjsXl)
 + To support more than one INFO PDU of P2P communication
 + To read/write NFC Type 4 tag
 
@@ -21,7 +21,7 @@ This is a port of [Yihui Xiong's PN532 Library](https://github.com/Seeed-Studio/
 + Easy way
 
   1. Download [zip file](http://goo.gl/F6beRM) and extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
-  2. Download [Don's NDEF library](http://goo.gl/ewxeAe)， extract it into Arduino's libraries and rename it to NDEF.
+  2. TODO: Download [Don's NDEF library](http://goo.gl/ewxeAe)， extract it into Arduino's libraries and rename it to NDEF.
   3. Follow the examples of the two libraries.
 
 + Git way for Linux/Mac (recommended)
@@ -44,43 +44,26 @@ It's based on [Adafruit_NFCShield_I2C](http://goo.gl/pk3FdB).
 @Don writes the [NDEF library](http://goo.gl/jDjsXl) to make it more easy to use. 
 @JiapengLi adds HSU interface.
 @awieser adds card emulation function.
+@gassajor000 ported to python/Raspberry Pi
 
-## HSU Interface
+## I2C Interface
 
-HSU is short for High Speed Uart. HSU interface needs only 4 wires to connect PN532 with Arduino, [Sensor Shield](http://goo.gl/i0EQgd) can make it more easier. For some Arduino boards like [Leonardo][Leonardo], [DUE][DUE], [Mega][Mega] ect, there are more than one `Serial` on these boards, so we can use this additional Serial to control PN532, HSU uses 115200 baud rate .
+I2C is short for Inter-integrated Circuit. I2C interface needs only 4 wires to connect PN532 with Raspbeery Pi.
 
-To use the `Serial1` control PN532, refer to the code below.
-```c++
-	#include <PN532_HSU.h>
-	#include <PN532.h>
+To use the I2C bus 1 to control PN532, refer to the code below.
+```python
+from PN532_I2C.pn532i2c import pn532i2c
+from PN532.pn532 import pn532
 	
-	PN532_HSU pn532hsu(Serial1);
-	PN532 nfc(pn532hsu);
+i2c = pn532i2c(1)
+nfc = pn532(i2c)
 
-	void setup(void)
-	{
-		nfc.begin();
-		//...
-	}
+def setup():
+    nfc.begin()
+    # ...
 ```
-If your Arduino has only one serial interface and you want to keep it for control or debugging with the Serial Monitor, you can use the [`SoftwareSerial`][SoftwareSerial] library to control the PN532 by emulating a serial interface. Include `PN532_SWHSU.h` instead of `PN532_HSU.h`:
-```c++
-	#include <SoftwareSerial.h>
-	#include <PN532_SWHSU.h>
-	#include <PN532.h>
-	
-	SoftwareSerial SWSerial( 10, 11 ); // RX, TX
 
-	PN532_SWHSU pn532swhsu( SWSerial );
-	PN532 nfc( pn532swhsu );
-
-	void setup(void)
-	{
-		nfc.begin();
-		//...
-	}
-```
-[Mega]: http://arduino.cc/en/Main/arduinoBoardMega
+[Mega]: http://arduino.cc/en/Main/ arduinoBoardMega
 [DUE]: http://arduino.cc/en/Main/arduinoBoardDue
 [Leonardo]: http://arduino.cc/en/Main/arduinoBoardLeonardo
 [SoftwareSerial]: https://www.arduino.cc/en/Reference/softwareSerial

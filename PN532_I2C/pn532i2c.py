@@ -1,5 +1,8 @@
 import time
 
+from PN532.pn532_log import DMSG
+from quick2wire.i2c import I2CMaster, writing, reading
+
 from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
     PN532_INVALID_FRAME, PN532_POSTAMBLE, PN532_PN532TOHOST, PN532_NO_SPACE, PN532_ACK_WAIT_TIME, PN532_TIMEOUT, \
     PN532_INVALID_ACK
@@ -7,181 +10,170 @@ from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE
 PN532_I2C_ADDRESS =  (0x48 >> 1)
 
 class pn532i2c(pn532Interface):
-    def __init__(self, wire: I2C_CLASS):
-        self._wire = wire
+    RPI_BUS0 = 0
+    RPI_BUS1 = 1
+
+    def __init__(self, bus: int):
+        assert bus in [self.RPI_BUS0, self.RPI_BUS1], "Bus number must be 1 or 0"
+        self._wire = None
+        self._bus = bus
         self._command = 0
 
     def begin(self):
-        self._wire.begin()
+        self._wire = I2CMaster(self._bus)
 
     def wakeup(self):
-        time.sleep(.5) # wait for all ready to manipulate pn532
+        time.sleep(.05) # wait for all ready to manipulate pn532
+        return self._wire.transaction(writing(PN532_I2C_ADDRESS, [0]))
 
-    def writeCommand(self, header: str, hlen: int, body: str, blen: int = 0):
+    def writeCommand(self, header: bytearray, body: bytearray = bytearray()):
         self._command = header[0]
-        self._wire.beginTransmission(PN532_I2C_ADDRESS)
+        data_out = [PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]
 
-        write(PN532_PREAMBLE)
-        write(PN532_STARTCODE1)
-        write(PN532_STARTCODE2)
+        length = len(header) + len(body) + 1 # length of data field: TFI + DATA
+        data_out.append(length)
+        data_out.append((~length & 0xFF) + 1) # checksum of length
 
-        length = hlen + blen + 1 # length of data field: TFI + DATA
-        write(length)
-        write(~length + 1) # checksum of length
+        data_out.append(PN532_HOSTTOPN532)
+        dsum = PN532_HOSTTOPN532 + sum(header) + sum(body)  # sum of TFI + DATA
 
-        write(PN532_HOSTTOPN532)
-        sum = PN532_HOSTTOPN532 # sum of TFI + DATA
+        data_out += list(header)
+        data_out += list(body)
+        checksum = ((~dsum & 0xFF) + 1) & 0xFF # checksum of TFI + DATA
 
-        print("write: ")
+        data_out += [checksum, PN532_POSTAMBLE]
 
-        for i in range(hlen):
-            if (write(header[i])):
-                sum += header[i]
+        DMSG("writeCommand: {}    {}    {}".format(header, body, data_out))
 
-                print(header[i])
-            else:
-                print("\nToo many data to send, I2C doesn't support such a big packet\n") # I2C max packet: 32 bytes
-                return PN532_INVALID_FRAME
+        try:
+            # send data
+            self._wire.transaction(writing(PN532_I2C_ADDRESS, tuple(data_out)))
+        except Exception as e:
+            DMSG(e)
+            DMSG("\nToo many data to send, I2C doesn't support such a big packet\n")  # I2C max packet: 32 bytes
+            return PN532_INVALID_FRAME
 
-        for i in range(blen):
-            if (write(body[i])):
-                sum += body[i]
+        return self._readAckFrame()
 
-                print(body[i])
-            else:
-                print("\nToo many data to send, I2C doesn't support such a big packet\n") # I2C max packet: 32 bytes
-                return PN532_INVALID_FRAME
-
-        checksum = (~sum + 1) & 0xFF # checksum of TFI + DATA
-        write(checksum)
-        write(PN532_POSTAMBLE)
-
-        self._wire.endTransmission()
-
-        print('\n')
-
-        return self.readAckFrame()
-
-    def getResponseLength(self, buf: bytearray, length: int, timeout: int):
+    def _getResponseLength(self, timeout: int):
         PN532_NACK = [0, 0, 0xFF, 0xFF, 0, 0]
-        time = 0
+        timer = 0
 
         while 1:
-            if self._wire.requestFrom(PN532_I2C_ADDRESS, 6):
-                if (read() & 1):
-                          # check first byte --- status
-                    break # PN532 is ready
+            responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, 6))
+            data = bytearray(responses[0])
+            DMSG('_getResponseLength length frame: {!r}'.format(data))
+            if data[0] & 0x1:
+              # check first byte --- status
+                break # PN532 is ready
 
-
-            time.sleep(1)
-            time+=1
-            if ((0 != timeout) && (time > timeout)):
+            time.sleep(.001)    # sleep 1 ms
+            timer+=1
+            if ((0 != timeout) and (timer > timeout)):
                 return -1
 
 
-        if (0x00 != read() || # PREAMBLE
-            0x00 != read() || # STARTCODE1
-            0xFF != read()    # STARTCODE2
+        if (PN532_PREAMBLE != data[1] or # PREAMBLE
+            PN532_STARTCODE1 != data[2] or # STARTCODE1
+            PN532_STARTCODE2 != data[3]    # STARTCODE2
         ):
-
+            DMSG('Invalid Length frame: {}'.format(data))
             return PN532_INVALID_FRAME
 
-        length = read()
+        length = data[4]
+        DMSG('_getResponseLength length is {:d}'.format(length))
 
         # request for last respond msg again
-        self._wire.beginTransmission(PN532_I2C_ADDRESS)
-        for i in PN532_NACK:
-            write(i)
-        self._wire.endTransmission()
+        DMSG('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
+        self._wire.transaction(writing(PN532_I2C_ADDRESS, PN532_NACK))
 
         return length
 
-    def readResponse(self, buf: bytearray, blen: int, timeout: int = 1000) -> int:
+    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
         t = 0
-        length = self.getResponseLength(buf, blen, timeout)
+        length = self._getResponseLength(timeout)
+        buf = bytearray()
+
+        if length < 0:
+            return length, buf
 
         # [RDY] 00 00 FF LEN LCS (TFI PD0 ... PDn) DCS 00
         while 1:
-            if (self._wire.requestFrom(PN532_I2C_ADDRESS, 6 + length + 2)):
-                if (read() & 1):
-                          # check first byte --- status
-                    break # PN532 is ready
+            responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, 6 + length + 2))
+            data = bytearray(responses[0])
+            if (data[0] & 1):
+              # check first byte --- status
+                break # PN532 is ready
 
-            time.sleep(1)
+            time.sleep(.001)     # sleep 1 ms
             t+=1
-            if ((0 != timeout) && (t> timeout)):
-                return -1
+            if ((0 != timeout) and (t> timeout)):
+                return -1, buf
 
-        if (0x00 != read() or # PREAMBLE
-            0x00 != read() or # STARTCODE1
-            0xFF != read()    # STARTCODE2
+        if (PN532_PREAMBLE != data[1] or # PREAMBLE
+            PN532_STARTCODE1 != data[2] or # STARTCODE1
+            PN532_STARTCODE2 != data[3]    # STARTCODE2
         ):
+            DMSG('Invalid Response frame: {}'.format(data))
+            return PN532_INVALID_FRAME, buf
 
-            return PN532_INVALID_FRAME
+        length = data[4]
 
-        length = read()
-
-        if (0 != (uint8_t)(length + read())):
+        if (0 != (length + data[5] & 0xFF)):
          # checksum of length
-            return PN532_INVALID_FRAME
+            DMSG('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, data[5]))
+            return PN532_INVALID_FRAME, buf
 
         cmd = self._command + 1 # response command
-        if (PN532_PN532TOHOST != read() or (cmd) != read()):
-            return PN532_INVALID_FRAME
+        if (PN532_PN532TOHOST != data[6] or (cmd) != data[7]):
+            return PN532_INVALID_FRAME, buf
 
         length -= 2
-        if (length > blen):
-            return PN532_NO_SPACE # not enough space
 
-        print("read:  ")
-        print('{:x]'.format(cmd))
+        DMSG("readResponse read command:  {:x}".format(cmd))
 
-        sum = PN532_PN532TOHOST + cmd
-        for i in range(length):
-            buf[i] = read()
-            sum += buf[i]
+        dsum = PN532_PN532TOHOST + cmd
+        buf = data[8:-2]
+        DMSG('readResponse response: {!r}\n'.format(buf))
+        dsum += sum(buf)
 
-            print(hex(buf[i]))
-        print('\n')
+        checksum = data[-2]
+        if (0 != (dsum + checksum) & 0xFF):
+            DMSG("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
+            return PN532_INVALID_FRAME, buf
+        # POSTAMBLE data [-1]
 
-        checksum = read()
-        if (0 != (uint8_t)(sum + checksum)):
-            print("checksum is not ok\n")
-            return PN532_INVALID_FRAME
-        read() # POSTAMBLE
+        return length, buf
 
-        return length
-
-    def readAckFrame(self) -> int:
+    def _readAckFrame(self) -> int:
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
-        ackBuf = []
 
-        print("wait for ack at : ")
-        print(millis())
-        print('\n')
+        DMSG("wait for ack at : ")
+        DMSG(time.time())
+        DMSG('\n')
 
         t = 0
         while 1:
-            if (self._wire.requestFrom(PN532_I2C_ADDRESS, sizeof(PN532_ACK) + 1)):
-                if (read() & 1):
-                          # check first byte --- status
-                    break # PN532 is ready
+            responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, len(PN532_ACK) + 1))
+            data = bytearray(responses[0])
+            if (data[0] & 1):
+              # check first byte --- status
+                break # PN532 is ready
 
-            time.sleep(1)
+            time.sleep(.001)    # sleep 1 ms
             t+=1
             if (t > PN532_ACK_WAIT_TIME):
-                print("Time out when waiting for ACK\n")
+                DMSG("Time out when waiting for ACK\n")
                 return PN532_TIMEOUT
 
-        print("ready at : ")
-        print(millis())
-        print('\n')
+        DMSG("ready at : ")
+        DMSG(time.time())
+        DMSG('\n')
 
-        for i in range(len(PN532_ACK)):
-            ackBuf[i] = read()
+        ackBuf = list(data[1:])
 
-        if ackBuf == PN532_ACK:
-            print("Invalid ACK\n")
+        if ackBuf != PN532_ACK:
+            DMSG("Invalid ACK {}\n".format(ackBuf))
             return PN532_INVALID_ACK
 
         return 0

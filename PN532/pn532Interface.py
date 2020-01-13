@@ -21,28 +21,24 @@ def REVERSE_BITS_ORDER(b):
 class pn532Interface:
     def begin(self):
         raise NotImplementedError('This function is virtual')
+
     def wakeup(self):
         raise NotImplementedError('This function is virtual')
 
-    """
-    * @brief    write a command and check ack
-    * @param    header  packet header
-    * @param    hlen    length of header
-    * @param    body    packet body
-    * @param    blen    length of body
-    * @return   0       success
-    *           not 0   failed
-    """
-    def writeCommand(self, header: str, hlen: int, body: str, blen: int = 0) -> int:
+    def writeCommand(self, header: bytearray, body: bytearray = bytearray()) -> int:
+        """
+        Write a command and check ack
+        :param header:  packet header
+        :param body:    packet body
+        :return:   0 success, not 0 failed
+        """
         raise NotImplementedError('This function is virtual')
 
-    """
-    * @brief    read the response of a command, strip prefix and suffix
-    * @param    buf     to contain the response data
-    * @param    len     length to read
-    * @param    timeout max time to wait, 0 means no timeout
-    * @return   >=0     length of response without prefix and suffix
-    *           <0      failed to read response
-    """
-    def readResponse(self, buf: bytearray, blen: int, timeout: int = 1000) -> int:
+    def readResponse(self, timeout: int = 1000) -> (int, bytearray):
+        """
+        Read the response of a command, strip prefix and suffix
+        :param timeout: max time to wait, 0 means no timeout
+        :return: (>=0     length of response without prefix an
+                    <0      failed to read response, response)
+        """
         raise NotImplementedError('This function is virtual')

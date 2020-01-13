@@ -4,9 +4,13 @@
     @license  BSD
 
 """
+from typing import List
+
 from PN532.pn532Interface import pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
+from PN532.pn532_log import DMSG, DMSG_HEX
+
 PN532_COMMAND_DIAGNOSE              = (0x00)
 PN532_COMMAND_GETFIRMWAREVERSION    = (0x02)
 PN532_COMMAND_GETGENERALSTATUS      = (0x04)
@@ -43,8 +47,12 @@ PN532_COMMAND_TGGETTARGETSTATUS     = (0x8A)
 PN532_RESPONSE_INDATAEXCHANGE       = (0x41)
 PN532_RESPONSE_INLISTPASSIVETARGET  = (0x4B)
 
-
-PN532_MIFARE_ISO14443A              = (0x00)
+# Baud Rate selectors
+PN532_MIFARE_ISO14443A_106KBPS      = (0x00)
+PN532_FELICA_212KBPS                = (0x01)
+PN532_FELICA_424KBPS                = (0x02)
+PN532_MIFARE_ISO14443B_106KBPS      = (0x03)
+PN532_JEWEL_106KBPS                 = (0x04)
 
 # Mifare Commands
 MIFARE_CMD_AUTH_A                   = (0x60)
@@ -119,17 +127,6 @@ FELICA_WRITE_MAX_BLOCK_NUM          = 10 # for typical FeliCa card
 FELICA_REQ_SERVICE_MAX_NODE_NUM     = 32
 
 
-DEBUG = False
-
-def DMSG(msg):
-    if DEBUG:
-        print(msg)
-
-def DMSG_HEX(char):
-    if DEBUG:
-        print('%x' % char)
-
-
 class pn532:
     def __init__(self, interface: pn532Interface):
         self._interface = interface
@@ -138,11 +135,8 @@ class pn532:
         self._uidLen = 0  # uid len
         self._key = []  # Mifare Classic key
         self.inListedTag = 0 # Tg number of inlisted tag.
-        self._felicaIDm = [] # FeliCa IDm (NFCID2)
-        self._felicaPMm = [] # FeliCa PMm (PAD)
-
-        self.pn532_packetbuffer = []
-    
+        self._felicaIDm = bytearray() # FeliCa IDm (NFCID2)
+        self._felicaPMm = bytearray() # FeliCa PMm (PAD)
 
     def begin(self):
         """
@@ -151,123 +145,77 @@ class pn532:
         self._interface.begin()
         self._interface.wakeup()
 
-    def PrintHex(self, data: str, numBytes: int):
-        """
-            Prints a hexadecimal value in plain characters
-    
-            @param  data      Pointer to the uint8_t data
-            @param  numBytes  Data length in bytes
-        """
-        for i in range(numBytes):
-            print(" :X".format(data[i]))
-        print("\n")
-
-    def PrintHexChar(self, data: str, numBytes: int):
-        """
-        @brief  Prints a hexadecimal value in plain characters, along with
-                the char equivalents in the following format
-
-                00 00 00 00 00 00  ......
-
-        @param  data      Pointer to the data
-        @param  numBytes  Data length in bytes
-        """    
-        for i in range(numBytes):
-            print(" {:2X}".format(data[i]))
-        
-        print("    ")
-        for i in range(numBytes):
-            c = data[i]
-            if (c <= 0x1f or c > 0x7f):
-                print(".")
-            else:
-                print("%c" % c)
-            
-            print("\n")
-        
     def getFirmwareVersion(self) -> int:
         """
-        @brief  Checks the firmware version of the PN5xx chip
+        Checks the firmware version of the PN5xx chip
 
-        @returns  The chip's firmware version and ID
+        :returns:  The chip's firmware version and ID
         """
-        self.pn532_packetbuffer[0] = PN532_COMMAND_GETFIRMWAREVERSION
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 1)):
+        if (self._interface.writeCommand(bytearray([PN532_COMMAND_GETFIRMWAREVERSION]))):
             return 0
 
         # read data packet
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
-        if (0 > status):
+        status, response = self._interface.readResponse()
+        if (status < 0):
             return 0
 
-        response = self.pn532_packetbuffer[0]
-        response <<= 8
-        response |= self.pn532_packetbuffer[1]
-        response <<= 8
-        response |= self.pn532_packetbuffer[2]
-        response <<= 8
-        response |= self.pn532_packetbuffer[3]
+        # response = self.pn532_packetbuffer[0]
+        # response <<= 8
+        # response |= self.pn532_packetbuffer[1]
+        # response <<= 8
+        # response |= self.pn532_packetbuffer[2]
+        # response <<= 8
+        # response |= self.pn532_packetbuffer[3]
 
-        return response
-
+        return int.from_bytes(response, byteorder='big')
 
     def readRegister(self, reg: int) -> int:
         """
-        @brief  Read a PN532 register.
+        Read a PN532 register.
 
-        @param  reg  the 16-bit register address.
+        :param reg:  the 16-bit register address.
 
-        @returns  The register value.
+        :returns:  The register value.
         """
-        self.pn532_packetbuffer[0] = PN532_COMMAND_READREGISTER
-        self.pn532_packetbuffer[1] = (reg >> 8) & 0xFF
-        self.pn532_packetbuffer[2] = reg & 0xFF
+        header = bytearray([PN532_COMMAND_READREGISTER, ((reg >> 8) & 0xFF), reg & 0xFF])
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3)):
+        if (self._interface.writeCommand(header)):
             return 0
 
         # read data packet
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
         if (0 > status):
             return 0
 
-        response = self.pn532_packetbuffer[0]
-
-        return response
+        return response[0]
 
     def writeRegister(self, reg: int, val: int) -> int:
         """
-        @brief  Write to a PN532 register.
+        Write to a PN532 register.
 
-        @param  reg  the 16-bit register address.
-        @param  val  the 8-bit value to write.
+        :param  reg:  the 16-bit register address.
+        :param  val:  the 8-bit value to write.
 
-        @returns  0 for failure, 1 for success.
+        :returns:  0 for failure, 1 for success.
         """
-        self.pn532_packetbuffer[0] = PN532_COMMAND_WRITEREGISTER
-        self.pn532_packetbuffer[1] = (reg >> 8) & 0xFF
-        self.pn532_packetbuffer[2] = reg & 0xFF
-        self.pn532_packetbuffer[3] = val
+        header = bytearray([PN532_COMMAND_WRITEREGISTER, ((reg >> 8) & 0xFF), (reg & 0xFF), (val & 0xFf)])
 
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 4)):
+        if (self._interface.writeCommand(header)):
             return 0
         
 
         # read data packet
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
         if (0 > status):
             return 0
-        
 
         return 1
 
     def writeGPIO(self,  pinstate: int) -> bool:
         """
-        Writes an 8-bit value that sets the state of the PN532's GPIO pins
+        Writes an 8-bit value that sets the state of the PN532's GPIO  (P3)
 
-        @warning This function is provided exclusively for board testing and
+        :warning: This function is provided exclusively for board testing and
                  is dangerous since it will throw an error if any pin other
                  than the ones marked "Can be used as GPIO" are modified!  All
                  pins that can not be used as GPIO should ALWAYS be left high
@@ -281,33 +229,33 @@ class pn532:
                  pinState[4]  = P34     *** RESERVED (Must be 1!) ***
                  pinState[5]  = P35     Can be used as GPIO
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns 1 if everything executed properly, 0 for an error
         """
     
         # Make sure pinstate does not try to toggle P32 or P34
         pinstate |= (1 << PN532_GPIO_P32) | (1 << PN532_GPIO_P34)
 
         # Fill command buffer
-        self.pn532_packetbuffer[0] = PN532_COMMAND_WRITEGPIO
-        self.pn532_packetbuffer[1] = PN532_GPIO_VALIDATIONBIT | pinstate  # P3 Pins
-        self.pn532_packetbuffer[2] = 0x00    # P7 GPIO Pins (not used ... taken by I2C)
+        header = bytearray([PN532_COMMAND_WRITEGPIO,
+                            (PN532_GPIO_VALIDATIONBIT | pinstate),  # P3 Pins
+                            0x00])  # P7 GPIO Pins (not used ... taken by I2C)
 
         DMSG("Writing P3 GPIO: ")
-        DMSG_HEX(self.pn532_packetbuffer[1])
+        DMSG_HEX(header)
         DMSG("\n")
 
         # Send the WRITEGPIO command (0x0E)
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3)):
+        if (self._interface.writeCommand(header)):
             return False
 
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
-    
+        status, response = self._interface.readResponse()
+        return status >= 0
 
     def readGPIO(self) -> int:
         """
-            Reads the state of the PN532's GPIO pins
+            Reads the state of the PN532's GPIO pins (P3)
 
-            :returns An 8-bit value containing the pin state where:
+            :returns: An 8-bit value containing the pin state where:
 
                  pinState[0]  = P30
                  pinState[1]  = P31
@@ -317,13 +265,13 @@ class pn532:
                  pinState[5]  = P35 
         """
     
-        self.pn532_packetbuffer[0] = PN532_COMMAND_READGPIO
+        header = bytearray([PN532_COMMAND_READGPIO])
 
         # Send the READGPIO command (0x0C)
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 1)):
+        if (self._interface.writeCommand(header)):
             return 0x0
 
-        self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
         # READGPIO response without prefix and suffix should be in the following format:
         # 
         #   byte            Description
@@ -333,112 +281,108 @@ class pn532:
         #   b2              Interface Mode Pins (not used ... bus select pins)
 
         DMSG("P3 GPIO: ") 
-        DMSG_HEX(self.pn532_packetbuffer[7])
+        DMSG_HEX(response[0])
         DMSG("P7 GPIO: ") 
-        DMSG_HEX(self.pn532_packetbuffer[8])
+        DMSG_HEX(response[1])
         DMSG("I0I1 GPIO: ") 
-        DMSG_HEX(self.pn532_packetbuffer[9])
+        DMSG_HEX(response[2])
         DMSG("\n")
 
-        return self.pn532_packetbuffer[0]
+        return response[0]
     
-
     def SAMConfig(self) -> bool:
         """
-        @brief  Configures the SAM (Secure Access Module) 
+        Configures the SAM (Secure Access Module)
+        :returns: True if success, False if error
         """
-    
-        self.pn532_packetbuffer[0] = PN532_COMMAND_SAMCONFIGURATION
-        self.pn532_packetbuffer[1] = 0x01 # normal mode
-        self.pn532_packetbuffer[2] = 0x14 # timeout 50ms * 20 = 1 second
-        self.pn532_packetbuffer[3] = 0x01 # use IRQ pin!
+        header = bytearray([PN532_COMMAND_SAMCONFIGURATION,
+                            0x01,   # normal mode
+                            0x14,   # timeout 50ms * 20 = 1 second
+                            0x01])  # use IRQ pin!
 
         DMSG("SAMConfig\n")
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 4)):
+        if (self._interface.writeCommand(header)):
             return False
 
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
+        status, response = self._interface.readResponse()
+        return status >= 0
     
 
     def setPassiveActivationRetries(self, maxRetries: int) -> bool:
         """
         Sets the MxRtyPassiveActivation uint8_t of the RFConfiguration register
 
-        @param  maxRetries    0xFF to wait forever, 0x00..0xFE to timeout
+        :param  maxRetries:    0xFF to wait forever, 0x00..0xFE to timeout
                               after mxRetries
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
-    
-        self.pn532_packetbuffer[0] = PN532_COMMAND_RFCONFIGURATION
-        self.pn532_packetbuffer[1] = 5    # Config item 5 (MaxRetries)
-        self.pn532_packetbuffer[2] = 0xFF # MxRtyATR (default = 0xFF)
-        self.pn532_packetbuffer[3] = 0x01 # MxRtyPSL (default = 0x01)
-        self.pn532_packetbuffer[4] = maxRetries
+        header = bytearray([PN532_COMMAND_RFCONFIGURATION,
+                            5,  # Config item 5 (MaxRetries)
+                            0xFF,  # MxRtyATR (default = 0xFF)
+                            0x01,  # MxRtyPSL (default = 0x01)
+                            maxRetries & 0xFF,
+                            ])
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 5)):
+        if (self._interface.writeCommand(header)):
             return False  # no ACK
 
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
-    
+        status, response = self._interface.readResponse()
+        return (status >=  0)
 
-    def setRFField(self, autoRFCA: int, rFOnOff: int) -> bool:
+    def setRFField(self, autoRFCA: bool, RFOn: bool) -> bool:
         """
         Sets the RFon/off uint8_t of the RFConfiguration register
 
-        @param  autoRFCA    0x00 No check of the external field before
+        :param  autoRFCA:    False: No check of the external field before
                             activation
 
-                            0x02 Check the external field before
+                            True: Check the external field before
                             activation
 
-        @param  rFOnOff     0x00 Switch the RF field off, 0x01 switch the RF
-                            field on
+        :param  RFOn:    False Switch the RF field off, True: switch the RF
+                        field on
 
-        @returns    1 if everything executed properly, 0 for an error
+        :returns:    True if everything executed properly, False for an error
         """
+        header = bytearray([
+            PN532_COMMAND_RFCONFIGURATION,
+            1,
+            (0x2 if autoRFCA else 0) | (0x1 if RFOn else 0)
+        ])
+        if(self._interface.writeCommand(header)):
+            return False  # no ACK
+
+        status, response = self._interface.readResponse()
+        return (status >= 0)
     
-        self.pn532_packetbuffer[0] = PN532_COMMAND_RFCONFIGURATION
-        self.pn532_packetbuffer[1] = 1
-        self.pn532_packetbuffer[2] = 0x00 | autoRFCA | rFOnOff
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3)) :
-            return False  # command failed
-        
-
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
-    
-
     # **** ISO14443A Commands *****
 
-    def readPassiveTargetID(self, cardbaudrate: int, uid: str, uidLength: int, timeout: int, inlist: bool) -> bool:
+    def readPassiveTargetID(self, cardbaudrate: int, timeout: int = 1000, inlist: bool = False) -> (bool, bytearray):
         """
         Waits for an ISO14443A target to enter the field
 
-        @param  cardBaudRate  Baud rate of the card
-        @param  uid           Pointer to the array that will be populated
-                              with the card's UID (up to 7 bytes)
-        @param  uidLength     Pointer to the variable that will hold the
-                              length of the card's UID.
-        @param  timeout       The number of tries before timing out
-        @param  inlist        If set to True, the card will be inlisted
+        :param  cardBaudRate:  Baud rate of the card
+        :param  timeout:       The number of tries before timing out
+        :param  inlist:        If set to True, the card will be inlisted
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: (True if successful, uid of the card)
         """
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET
-        self.pn532_packetbuffer[1] = 1  # max 1 cards at once (we can set this to 2 later)
-        self.pn532_packetbuffer[2] = cardbaudrate
+        header = bytearray([
+            PN532_COMMAND_INLISTPASSIVETARGET,
+            1,  # max 1 cards at once (we can set this to 2 later)
+            cardbaudrate & 0xFF,
+        ])
+        if (self._interface.writeCommand(header)) :
+            return False, bytearray()  # command failed
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3)) :
-            return False  # command failed
-        
 
         # read data packet
-        if (self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), timeout) < 0): 
-            return False
+        status, response = self._interface.readResponse(timeout)
+        if (status < 0):
+            return False, bytearray()
         
-
         # check some basic stuff
         # ISO14443A card response should be in the following format:
 
@@ -451,33 +395,28 @@ class pn532:
           # b5              NFCID Length
           # b6..NFCIDLen    NFCID
 
-        if (self.pn532_packetbuffer[0] != 1):
-            return False
+        if (response[0] != 1):
+            return False, bytearray()
 
-        sens_res = self.pn532_packetbuffer[2]
+        sens_res = response[2]
         sens_res <<= 8
-        sens_res |= self.pn532_packetbuffer[3]
+        sens_res |= response[3]
 
         DMSG("ATQA: 0x")
         DMSG_HEX(sens_res)
         DMSG("SAK: 0x")
-        DMSG_HEX(self.pn532_packetbuffer[4])
+        DMSG_HEX(response[4])
         DMSG("\n")
 
         # Card appears to be Mifare Classic 
-        uidLength = self.pn532_packetbuffer[5]
-
-        for i in range(self.pn532_packetbuffer[5]):
-            uid[i] = self.pn532_packetbuffer[6 + i]
-        
+        uidLength = response[5]
+        uid = bytearray(response[6:6 + uidLength])
 
         if (inlist) :
-            self.inListedTag = self.pn532_packetbuffer[1]
+            self.inListedTag = response[1]
         
-        return True
+        return True, uid
     
-
-
     # **** Mifare Classic Functions *****
 
     def mifareclassic_IsFirstBlock (self, uiBlock: int) -> bool:
@@ -491,7 +430,6 @@ class pn532:
             return ((uiBlock) % 4 == 0)
         else:
             return ((uiBlock) % 16 == 0)
-    
 
     def mifareclassic_IsTrailerBlock(self, uiBlock: int) -> bool:
         """
@@ -503,375 +441,342 @@ class pn532:
             return ((uiBlock + 1) % 4 == 0)
         else:
             return ((uiBlock + 1) % 16 == 0)
-    
 
-    def mifareclassic_AuthenticateBlock(self, uid: str, uidLen: int, blockNumber: int, keyNumber: int, keyData: str) -> int:
+    def mifareclassic_AuthenticateBlock(self, uid: bytearray, blockNumber: int, keyNumber: int, keyData: bytearray) -> bool:
         """
                 Tries to authenticate a block of memory on a MIFARE card using the
         INDATAEXCHANGE command.  See section 7.3.8 of the PN532 User Manual
         for more information on sending MIFARE and other commands.
 
-        @param  uid           Pointer to a byte array containing the card UID
-        @param  uidLen        The length (in bytes) of the card's UID (Should
-                              be 4 for MIFARE Classic)
-        @param  blockNumber   The block number to authenticate.  (0..63 for
+        :param  uid:           Pointer to a byte array containing the card UID
+        :param  blockNumber:   The block number to authenticate.  (0..63 for
                               1KB cards, and 0..255 for 4KB cards).
-        @param  keyNumber     Which key type to use during authentication
+        :param  keyNumber:     Which key type to use during authentication
                               (0 = MIFARE_CMD_AUTH_A, 1 = MIFARE_CMD_AUTH_B)
-        @param  keyData       Pointer to a byte array containing the 6 bytes
+        :param  keyData:       Pointer to a byte array containing the 6 bytes
                               key value
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
     
         # Hang on to the key and uid data
         self._key = keyData
         self._uid = uid
-        self._uidLen = uidLen
 
         # Prepare the authentication command #
-        self.pn532_packetbuffer = [PN532_COMMAND_INDATAEXCHANGE, 1,
-                                   MIFARE_CMD_AUTH_B if keyNumber else MIFARE_CMD_AUTH_A, blockNumber]
-        self.pn532_packetbuffer.append(self._key[:6])
-        for i in range(self._uidLen):
-            self.pn532_packetbuffer[10 + i] = self._uid[i]              #  4 bytes card ID 
-        
+        header = bytearray([PN532_COMMAND_INDATAEXCHANGE,
+                  1,
+                  MIFARE_CMD_AUTH_B if keyNumber else MIFARE_CMD_AUTH_A,
+                  blockNumber])
+        header += self._key[:6] + self._uid
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 10 + self._uidLen)):
-            return 0
+        if (self._interface.writeCommand(header)):
+            return False
 
         # Read the response packet
-        self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
 
         # Check if the response is valid and we are authenticated???
         # for an auth success it should be bytes 5-7: 0xD5 0x41 0x00
         # Mifare auth error is technically byte 7: 0x14 but anything other and 0x00 is not good
-        if (self.pn532_packetbuffer[0] != 0x00):
+        if (status < 0 or response[0] != 0x00):
             DMSG("Authentication failed\n")
-            return 0
-        
+            return False
 
-        return 1
-    
+        return True
 
-    def mifareclassic_ReadDataBlock (self, blockNumber: int, data: str) -> int:
+    def mifareclassic_ReadDataBlock (self, blockNumber: int) -> (bool, bytearray):
         """
         Tries to read an entire 16-bytes data block at the specified block
         address.
 
-        @param  blockNumber   The block number to authenticate.  (0..63 for
+        :param  blockNumber:   The block number to authenticate.  (0..63 for
                               1KB cards, and 0..255 for 4KB cards).
-        @param  data          Pointer to the byte array that will hold the
+        :param  data:          Pointer to the byte array that will hold the
                               retrieved data (if any)
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: tuple (result, data)
+            result: bool True if operation was successful, False if error
+            data: bytearray data read
         """
     
         DMSG("Trying to read 16 bytes from block ")
         DMSG(blockNumber)
 
-        #  Prepare the command 
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INDATAEXCHANGE
-        self.pn532_packetbuffer[1] = 1                      #  Card number 
-        self.pn532_packetbuffer[2] = MIFARE_CMD_READ        #  Mifare Read command = 0x30 
-        self.pn532_packetbuffer[3] = blockNumber            #  Block Number (0..63 for 1K, 0..255 for 4K) 
-
+        #  Prepare the command
+        header = bytearray([
+            PN532_COMMAND_INDATAEXCHANGE,
+            1,                  # Card number
+            MIFARE_CMD_READ,    # Mifare Read command = 0x30
+            blockNumber,        # Block Number (0..63 for 1K, 0..255 for 4K)
+        ])
         #  Send the command 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 4)):
-            return 0
+        if (self._interface.writeCommand(header)):
+            return False, bytearray()
         
 
         #  Read the response packet 
-        self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
 
         #  If byte 8 isn't 0x00 we probably have an error 
-        if (self.pn532_packetbuffer[0] != 0x00):
-            return 0
-        
+        if (status < 0 or response[0] != 0x00):
+            DMSG("Authentication failed\n")
+            return False, bytearray()
 
         #  Copy the 16 data bytes to the output buffer        
         #  Block content starts at byte 9 of a valid response
-        data = {self.pn532_packetbuffer[1:17]}
-
-        return 1
+        return True, response[1:17]
     
-
-    def mifareclassic_WriteDataBlock (self, blockNumber: int, data: str) -> int:
+    def mifareclassic_WriteDataBlock (self, blockNumber: int, data: bytearray) -> bool:
         """
                 Tries to write an entire 16-bytes data block at the specified block
         address.
 
-        @param  blockNumber   The block number to authenticate.  (0..63 for
+        :param  blockNumber:   The block number to authenticate.  (0..63 for
                               1KB cards, and 0..255 for 4KB cards).
-        @param  data          The byte array that contains the data to write.
+        :param  data:          The byte array that contains the data to write.
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
-    
-    
+
         #  Prepare the first command
-        self.pn532_packetbuffer = [PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE, blockNumber]
-        self.pn532_packetbuffer.append(data[:16])
+        header = bytearray([PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE, blockNumber]) + data[:16]
 
         #  Send the command 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 20)): 
-            return 0
+        if (self._interface.writeCommand(header)):
+            return False
         
+        #  Read the response packet
+        status, response = self._interface.readResponse()
 
-        #  Read the response packet 
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
-    
+        return (status >= 0)
 
-    def mifareclassic_FormatNDEF (self) -> int:
+    def mifareclassic_FormatNDEF (self) -> bool:
         """
                 Formats a Mifare Classic card to store NDEF Records
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
     
-        sectorbuffer1 = [0x14, 0x01, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1]
-        sectorbuffer2 = [0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1]
-        sectorbuffer3 = [0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x78, 0x77, 0x88, 0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+        sectorbuffer1 = bytearray([0x14, 0x01, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1])
+        sectorbuffer2 = bytearray([0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1])
+        sectorbuffer3 = bytearray([0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x78, 0x77, 0x88, 0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
 
         # Note 0xA0 0xA1 0xA2 0xA3 0xA4 0xA5 must be used for key A
         # for the MAD sector in NDEF records (sector 0)
 
         # Write block 1 and 2 to the card
         if (not (self.mifareclassic_WriteDataBlock(1, sectorbuffer1))):
-            return 0
+            return False
         if (not (self.mifareclassic_WriteDataBlock(2, sectorbuffer2))):
-            return 0
+            return False
         # Write key A and access rights card
         if (not (self.mifareclassic_WriteDataBlock(3, sectorbuffer3))):
-            return 0
+            return False
 
         # Seems that everything was OK (?!)
-        return 1
-    
+        return True
 
-    def mifareclassic_WriteNDEFURI (self, sectorNumber: int, uriIdentifier: int, url: str) -> int:
+    def mifareclassic_WriteNDEFURI (self, sectorNumber: int, uriIdentifier: int, url: str) -> bool:
         """
-                Writes an NDEF URI Record to the specified sector (1..15)
+        Writes an NDEF URI Record to the specified sector (1..15)
 
         Note that this function assumes that the Mifare Classic card is
         already formatted to work as an "NFC Forum Tag" and uses a MAD1
         file system.  You can use the NXP TagWriter app on Android to
         properly format cards for this.
 
-        @param  sectorNumber  The sector that the URI record should be written
+        :param  sectorNumber:  The sector that the URI record should be written
                               to (can be 1..15 for a 1K card)
-        @param  uriIdentifier The uri identifier code (0 = none, 0x01 =
-                              "http:#www.", etc.)
-        @param  url           The uri text to write (max 38 characters).
+        :param  uriIdentifier: The uri identifier code (0 = none, 0x01 =
+                              "http://www.", etc.)
+        :param  url:           The uri text to write (max 38 characters).
 
-        @returns 1 if everything executed properly, 0 for an error
+        :return: True if everything executed properly, False for an error
         """
 
         # Figure out how long the string is
-        length = len(url)
+        url_bytes = bytearray(url, 'ascii')
+        length = len(url_bytes)
 
         # Make sure we're within a 1K limit for the sector number
         if ((sectorNumber < 1) or (sectorNumber > 15)):
-            return 0
+            return False
 
         # Make sure the URI payload is between 1 and 38 chars
         if ((length < 1) or (length > 38)):
-            return 0
+            return False
 
         # Note 0xD3 0xF7 0xD3 0xF7 0xD3 0xF7 must be used for key A
         # in NDEF records
 
         # Setup the sector buffer (w/pre-formatted TLV wrapper and NDEF message)
-        sectorbuffer1 = [0x00, 0x00, 0x03, length + 5, 0xD1, 0x01, length + 1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer2 = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer3 = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-        sectorbuffer4 = [0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+        sectorbuffer1 = bytearray([0x00, 0x00, 0x03, length + 5, 0xD1, 0x01, length + 1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer2 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer3 = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        sectorbuffer4 = bytearray([0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+        # TODO: This can probably be simplified...
         if (length <= 6) :
             # Unlikely we'll get a url this short, but why not ...
-            memcpy (sectorbuffer1 + 9, url, length)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:length] + sectorbuffer1[9 + length:]
             sectorbuffer1[length + 9] = 0xFE
         elif (length == 7):
             # 0xFE needs to be wrapped around to next block
-            memcpy (sectorbuffer1 + 9, url, length)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:length] + sectorbuffer1[9 + length:]
             sectorbuffer2[0] = 0xFE
         elif ((length > 7) and (length <= 22)):
             # Url fits in two blocks
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, length - 7)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[7:] + sectorbuffer2[length - 7:]
             sectorbuffer2[length - 7] = 0xFE
         elif (length == 23):
             # 0xFE needs to be wrapped around to final block
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, length - 7)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[7:]
             sectorbuffer3[0] = 0xFE
-         else:
+        else:
             # Url fits in three blocks
-            memcpy (sectorbuffer1 + 9, url, 7)
-            memcpy (sectorbuffer2, url + 7, 16)
-            memcpy (sectorbuffer3, url + 23, length - 23)
+            sectorbuffer1 = sectorbuffer1[:9] + url_bytes[:7] + sectorbuffer1[9 + 7:]
+            sectorbuffer2 = url_bytes[7:23]
+            sectorbuffer3 = url_bytes[23:] + sectorbuffer3[length - 23:]
             sectorbuffer3[length - 23] = 0xFE
-        
 
         # Now write all three blocks back to the card
         if (not (self.mifareclassic_WriteDataBlock(sectorNumber * 4, sectorbuffer1))):
-            return 0
+            return False
         if (not (self.mifareclassic_WriteDataBlock((sectorNumber * 4) + 1, sectorbuffer2))):
-            return 0
+            return False
         if (not (self.mifareclassic_WriteDataBlock((sectorNumber * 4) + 2, sectorbuffer3))):
-            return 0
+            return False
         if (not (self.mifareclassic_WriteDataBlock((sectorNumber * 4) + 3, sectorbuffer4))):
-            return 0
+            return False
 
         # Seems that everything was OK (?!)
-        return 1
-    
+        return True
 
     # **** Mifare Ultralight Functions *****
 
-    def mifareultralight_ReadPage(self, page: int, buffer: str) -> int:
+    def mifareultralight_ReadPage(self, page: int) -> (bool, bytearray):
         """
                 Tries to read an entire 4-bytes page at the specified address.
 
-        @param  page        The page number (0..63 in most cases)
-        @param  buffer      Pointer to the byte array that will hold the
-                            retrieved data (if any)
+        :param  page:        The page number (0..63 in most cases)
+        :returns: (result, data)
+                result: bool True if successful, False if error
+                data: bytearray received page data
         """
-    
-        #  Prepare the command 
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INDATAEXCHANGE
-        self.pn532_packetbuffer[1] = 1                   #  Card number 
-        self.pn532_packetbuffer[2] = MIFARE_CMD_READ     #  Mifare Read command = 0x30 
-        self.pn532_packetbuffer[3] = page                #  Page Number (0..63 in most cases) 
 
+        #  Prepare the command
+        header = bytearray([
+            PN532_COMMAND_INDATAEXCHANGE,
+            1,                   #  Card number
+            MIFARE_CMD_READ,     #  Mifare Read command = 0x30
+            page,                #  Page Number (0..63 in most cases)
+        ])
         #  Send the command 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 4)):
-            return 0
+        if (self._interface.writeCommand(header)):
+            return False, bytearray()
         
 
         #  Read the response packet 
-        self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
 
-        #  If byte 8 isn't 0x00 we probably have an error 
-        if (self.pn532_packetbuffer[0] == 0x00) :
-            #  Copy the 4 data bytes to the output buffer         
-            #  Block content starts at byte 9 of a valid response 
-            #  Note that the command actually reads 16 bytes or 4  
-            #  pages at a time ... we simply discard the last 12  
-            #  bytes                                              
-            buffer = self.pn532_packetbuffer[1:5]
-        else:
-            return 0
-        
+        #  If byte 8 isn't 0x00 we probably have an error
+        if (status < 0 or response[0] != 0x00):
+            DMSG("Authentication failed\n")
+            return False, bytearray()
 
-        # Return OK signal
-        return 1
-    
+        #  Copy the 4 data bytes to the output buffer
+        #  Block content starts at byte 9 of a valid response
+        #  Note that the command actually reads 16 bytes or 4
+        #  pages at a time ... we simply discard the last 12
+        #  bytes
+        data = response[1:5]
+        return True, data
 
-    def mifareultralight_WritePage(self, page: int, buffer: str) -> int:
+    def mifareultralight_WritePage(self, page: int, buffer: bytearray) -> bool:
         """
         Tries to write an entire 4-bytes data buffer at the specified page
         address.
 
-        @param  page     The page number to write into.  (0..63).
-        @param  buffer   The byte array that contains the data to write.
+        :param  page:     The page number to write into.  (0..63).
+        :param  buffer:   The byte array that contains the data to write.
 
-        @returns 1 if everything executed properly, 0 for an error
+        :returns: True if everything executed properly, False for an error
         """
     
         #  Prepare the first command 
-        self.pn532_packetbuffer = [PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE_ULTRALIGHT, page]
-        self.pn532_packetbuffer.append(buffer[:4])
+        header = bytearray([PN532_COMMAND_INDATAEXCHANGE, 1, MIFARE_CMD_WRITE_ULTRALIGHT, page])
+        header += buffer[:4]
 
         #  Send the command 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 8)):
-            return 0
-        
-
-        #  Read the response packet 
-        return (0 < self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer)))
-    
-
-    def inDataExchange(self, send: str, sendLength: int, response: str, responseLength: str) -> bool:
-        """
-                @brief  Exchanges an APDU with the currently inlisted peer
-
-        @param  send            Pointer to data to send
-        @param  sendLength      Length of the data to send
-        @param  response        Pointer to response data
-        @param  responseLength  Pointer to the response data length
-        """
-    
-        self.pn532_packetbuffer[0] = 0x40 # PN532_COMMAND_INDATAEXCHANGE
-        self.pn532_packetbuffer[1] = self.inListedTag
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 2, send, sendLength)):
+        if (self._interface.writeCommand(header)):
             return False
+
+        #  Read the response packet
+        status, response = self._interface.readResponse()
+        return status >= 0
+
+    def inDataExchange(self, send: bytearray) -> (bool, bytearray):
+        """
+                Exchanges an APDU with the currently inlisted peer
+
+        :param  send:            Pointer to data to send
+        :param  response:        Pointer to response data
+        :param  responseLength:  Pointer to the response data length
+        """
+
+        header = bytearray([
+            0x40,  # PN532_COMMAND_INDATAEXCHANGE
+            self.inListedTag
+        ])
+
+        if (self._interface.writeCommand(header, send)):
+            return False, bytearray()
         
 
-        status = self._interface.readResponse(response, responseLength, 1000)
+        status, response = self._interface.readResponse()
         if (status < 0):
-            return False
+            return False, bytearray()
         
 
         if ((response[0] & 0x3f) != 0):
             DMSG("Status code indicates an error\n")
-            return False
-        
+            return False, bytearray()
 
-        length = status
-        length -= 1
-
-        if (length > responseLength):
-            length = responseLength # silent truncation...
-        
-
-        for i in range(length):
-            response[i] = response[i + 1]
-        
-        responseLength = length
-
-        return True
-    
+        response = response[1:]
+        return True, response
 
     def inListPassiveTarget(self) -> bool:
         """
-            # !
-        @brief  'InLists' a passive target. PN532 acting as reader/initiator,
-                peer acting as card/responder.
+            'InLists' a passive target. PN532 acting as reader/initiator,
+            peer acting as card/responder.
         """
-    
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET
-        self.pn532_packetbuffer[1] = 1
-        self.pn532_packetbuffer[2] = 0
-
+        header = bytearray([
+            PN532_COMMAND_INLISTPASSIVETARGET,
+            1,
+            0,
+        ])
         DMSG("inList passive target\n")
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3)):
+        if (self._interface.writeCommand(header)):
+            return False
+
+        status, response = self._interface.readResponse()
+        if (status < 0 or response[0] != 1):
             return False
         
-
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), 30000)
-        if (status < 0) :
-            return False
-        
-
-        if (self.pn532_packetbuffer[0] != 1):
-            return False
-        
-
-        self.inListedTag = self.pn532_packetbuffer[1]
+        self.inListedTag = response[1]
 
         return True
-    
 
-    def tgInitAsTarget(self, command: str, len: int, timeout: int) -> int:
+    def tgInitAsTarget(self, command: bytearray, timeout: int) -> int:
 
-        status = self._interface.writeCommand(command, len)
+        status = self._interface.writeCommand(command)
         if (status < 0):
             return -1
-        
 
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), timeout)
+        status, response = self._interface.readResponse(timeout)
         if (status > 0):
             return 1
         elif(PN532_TIMEOUT == status):
@@ -885,7 +790,7 @@ class pn532:
 
          """
 
-        command = [
+        command = bytearray([
             PN532_COMMAND_TGINITASTARGET,
             0,
             0x00, 0x00,  # SENS_RES
@@ -900,289 +805,264 @@ class pn532:
 
             0x0a, 0x46, 0x66, 0x6D, 0x01, 0x01, 0x10, 0x02, 0x02, 0x00, 0x80,
             # LLCP magic number, version parameter and MIUX
-            0x00]
+            0x00])
 
-        return self.tgInitAsTarget(command, len(command), timeout)
+        return self.tgInitAsTarget(command, timeout)
+
+    def tgGetData(self) -> (int, bytearray):
     
+        header = bytearray([PN532_COMMAND_TGGETDATA])
 
-    def tgGetData(self, buf: str, len: int) -> int:
-    
-        buf[0] = PN532_COMMAND_TGGETDATA
-
-        if (self._interface.writeCommand(buf, 1)):
-            return -1
+        if (self._interface.writeCommand(header)):
+            return -1, bytearray()
         
 
-        status = self._interface.readResponse(buf, len, 3000)
+        status, response = self._interface.readResponse()
         if (0 >= status):
-            return status
-        
+            return status, bytearray()
 
         length = status - 1
 
-
-        if (buf[0] != 0):
+        if (response[0] != 0):
             DMSG("status is not ok\n")
-            return -5
-        
+            return -5, bytearray()
 
-        for i in range(length):
-            buf[i] = buf[i + 1]
-        
-
-        return length
+        response = response[1:]
+        return length, response
     
 
-    def tgSetData(self, header: str, hlen: int, body: str, blen: int) -> bool:
-    
-        if (hlen > (len(self.pn532_packetbuffer) - 1)):
-            if ((body != 0) or (header == self.pn532_packetbuffer)) :
-                DMSG("tgSetData:buffer too small\n")
-                return False
-            
+    def tgSetData(self, header: bytearray, body: bytearray = bytearray()) -> bool:
+        header = bytearray([PN532_COMMAND_TGSETDATA]) + header
 
-            self.pn532_packetbuffer[0] = PN532_COMMAND_TGSETDATA
-            if (self._interface.writeCommand(self.pn532_packetbuffer, 1, header, hlen)) 
-                return False
-            
-        else :
-            for i in range(hlen).__reversed__():
-                self.pn532_packetbuffer[i + 1] = header[i]
-            
-            self.pn532_packetbuffer[0] = PN532_COMMAND_TGSETDATA
-
-            if (self._interface.writeCommand(self.pn532_packetbuffer, hlen + 1, body, blen)):
-                return False
-            
-        
-
-        if (0 > self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), 3000)):
+        if (self._interface.writeCommand(header, body)):
             return False
-        
 
-        if (0 != self.pn532_packetbuffer[0]):
+        status, response = self._interface.readResponse()
+        if (0 > status):
             return False
-        
+
+        if (0 != response[0]):
+            return False
 
         return True
-    
 
-    def inRelease(self, relevantTarget: str) -> int:
-
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INRELEASE
-        self.pn532_packetbuffer[1] = relevantTarget
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 2)):
-            return 0
-        
+    def inRelease(self, relevantTarget: int = 0) -> bool:
+        header = bytearray([
+            PN532_COMMAND_INRELEASE,
+            relevantTarget,
+        ])
+        if (self._interface.writeCommand(header)):
+            return False
 
         # read data packet
-        return self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer))
+        status, response = self._interface.readResponse()
+        return status >= 0
 
-    def felica_Polling(self, systemCode: int, requestCode: int, idm: str, pmm: str, systemCodeResponse: str,
-                       timeout: int) -> int:
+    def felica_Polling(self, systemCode: int, requestCode: int, timeout: int = 1000) -> (int, bytearray, bytearray, int):
         """
-                @brief  Poll FeliCa card. PN532 acting as reader/initiator,
-                    peer acting as card/responder.
-            @param[in]  systemCode             Designation of System Code. When sending FFFFh as System Code,
+            Poll FeliCa card. PN532 acting as reader/initiator,
+            peer acting as card/responder.
+            :param timeout:
+            :param  systemCode:             Designation of System Code. When sending FFFFh as System Code,
                                                all FeliCa cards can return response.
-            @param[in]  requestCode            Designation of Request Data as follows:
+            :param  requestCode:            Designation of Request Data as follows:
                                                  00h: No Request
                                                  01h: System Code request (to acquire System Code of the card)
-                                                 02h: Communication perfomance request
-            @param[out] idm                    IDm of the card (8 bytes)
-            @param[out] pmm                    PMm of the card (8 bytes)
-            @param[out] systemCodeResponse     System Code of the card (Optional, 2bytes)
-            @return                            = 1: A FeliCa card has detected
-                                               = 0: No card has detected
-                                               < 0: error
+                                                 02h: Communication performance request
+            :returns: (status, idm, pwm, systemCodeResponse)
+                        status                 0 = no card, 1 = FeliCa card detected, <0 = error
+                        idm                    IDm of the card (8 bytes)
+                        pmm                    PMm of the card (8 bytes)
+                        systemCodeResponse     System Code of the card (Optional, 2bytes)
         """
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET
-        self.pn532_packetbuffer[1] = 1
-        self.pn532_packetbuffer[2] = 1
-        self.pn532_packetbuffer[3] = FELICA_CMD_POLLING
-        self.pn532_packetbuffer[4] = (systemCode >> 8) & 0xFF
-        self.pn532_packetbuffer[5] = systemCode & 0xFF
-        self.pn532_packetbuffer[6] = requestCode
-        self.pn532_packetbuffer[7] = 0
+        header = bytearray([
+        PN532_COMMAND_INLISTPASSIVETARGET,
+        1,
+        1,
+        FELICA_CMD_POLLING,
+        (systemCode >> 8) & 0xFF,
+        systemCode & 0xFF,
+        requestCode & 0xFF,
+        0,
+        ])
+        no_data = bytearray()
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 8)):
+        if (self._interface.writeCommand(header)):
             DMSG("Could not send Polling command\n")
-            return -1
+            return -1, no_data, no_data, 0
 
-        status = self._interface.readResponse(self.pn532_packetbuffer, 22, timeout)
+        status, response = self._interface.readResponse(timeout)
         if (status < 0):
             DMSG("Could not receive response\n")
-            return -2
+            return -2, no_data, no_data, 0
 
-        # Check NbTg (pn532_packetbuffer[7])
-        if (self.pn532_packetbuffer[0] == 0):
+        # Check NbTg (response[7])
+        if (response[0] == 0):
             DMSG("No card had detected\n")
-            return 0
-        elif (self.pn532_packetbuffer[0] != 1):
+            return 0, no_data, no_data, 0
+        elif (response[0] != 1):
             DMSG("Unhandled number of targets inlisted. NbTg: ")
-            DMSG_HEX(self.pn532_packetbuffer[7])
+            DMSG_HEX(response[7])
             DMSG("\n")
-            return -3
+            return -3, no_data, no_data, 0
 
-        self.inListedTag = self.pn532_packetbuffer[1]
+        self.inListedTag = response[1]
         DMSG("Tag number: ")
-        DMSG_HEX(self.pn532_packetbuffer[1])
+        DMSG_HEX(response[1])
         DMSG("\n")
 
         # length check
-        responseLength = self.pn532_packetbuffer[2]
+        responseLength = response[2]
         if (responseLength != 18 and responseLength != 20):
             DMSG("Wrong response length\n")
-            return -4
+            return -4, no_data, no_data, 0
 
-        i = 0
-        for i in range(8):
-            idm[i] = self.pn532_packetbuffer[4 + i]
-            self._felicaIDm[i] = self.pn532_packetbuffer[4 + i]
-            pmm[i] = self.pn532_packetbuffer[12 + i]
-            self._felicaPMm[i] = self.pn532_packetbuffer[12 + i]
+        idm = response[4:12]
+        pwm = response[12:24]
+        self._felicaIDm = idm
+        self._felicaPMm = pwm
 
         if (responseLength == 20):
-            systemCodeResponse = ((self.pn532_packetbuffer[20] << 8) + self.pn532_packetbuffer[21]) & 0xFF
+            systemCodeResponse = (response[20] << 8) + response[21]
+        else:
+            systemCodeResponse = 0
 
-        return 1
+        return 1, idm, pwm, systemCodeResponse
 
-    def felica_SendCommand(self, command: str, commandlength: int, response: str, responseLength: int) -> int:
+    def felica_SendCommand(self, command: bytearray) -> (int, bytearray):
         """
-                @brief  Sends FeliCa command to the currently inlisted peer
+            Sends FeliCa command to the currently inlisted peer
 
-            @param[in]  command         FeliCa command packet. (e.g. 00 FF FF 00 00  for Polling command)
-            @param[in]  commandlength   Length of the FeliCa command packet. (e.g. 0x05 for above Polling command )
-            @param[out] response        FeliCa response packet. (e.g. 01 NFCID2(8 bytes) PAD(8 bytes)  for Polling response)
-            @param[out] responselength  Length of the FeliCa response packet. (e.g. 0x11 for above Polling command )
-            @return                          = 1: Success
-                                             < 0: error
+            :param  command:         FeliCa command packet. (e.g. 00 FF FF 00 00  for Polling command)
+            :returns:  (status, response)
+                        status 1: Success, < 0: error
+                        response: FeliCa response packet. (e.g. 01 NFCID2(8 bytes) PAD(8 bytes)  for Polling response)
         """
+        commandlength = len(command)
+        no_data = bytearray()
 
         if (commandlength > 0xFE):
             DMSG("Command length too long\n")
-            return -1
+            return -1, no_data
 
-        self.pn532_packetbuffer[0] = 0x40  # PN532_COMMAND_INDATAEXCHANGE
-        self.pn532_packetbuffer[1] = self.inListedTag
-        self.pn532_packetbuffer[2] = commandlength + 1
-
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 3, command, commandlength)):
+        header = bytearray([
+            PN532_COMMAND_INDATAEXCHANGE,
+            self.inListedTag,
+            commandlength + 1,
+        ])
+        if (self._interface.writeCommand(header, command)):
             DMSG("Could not send FeliCa command\n")
-            return -2
+            return -2, no_data
 
         # Wait card response
-        status = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), 200)
+        status, response = self._interface.readResponse()
         if (status < 0):
             DMSG("Could not receive response\n")
-            return -3
+            return -3, no_data
 
-        # Check status (pn532_packetbuffer[0])
-        if ((self.pn532_packetbuffer[0] & 0x3F) != 0):
+        # Check status (response[0])
+        if ((response[0] & 0x3F) != 0):
             DMSG("Status code indicates an error: ")
-            DMSG_HEX(self.pn532_packetbuffer[0])
+            DMSG_HEX(response[0])
             DMSG("\n")
-            return -4
+            return -4, no_data
 
         # length check
-        responseLength = self.pn532_packetbuffer[1] - 1
+        responseLength = response[1] - 1
         if ((status - 2) !=  responseLength):
             DMSG("Wrong response length\n")
-            return -5
+            return -5, no_data
 
-        response = self.pn532_packetbuffer[2: 2 + responseLength]
+        response_data = response[2: 2 + responseLength]
         
 
-        return 1
+        return 1, response_data
 
-    def felica_RequestService(self, numNode: int, nodeCodeList: str, keyVersions: str) -> int:
+    def felica_RequestService(self, nodeCodeList: List[int]) -> (int, List[int]):
         """
-            @brief  Sends FeliCa Request Service command
+            Sends FeliCa Request Service command
 
-            @param[in]  numNode           length of the nodeCodeList
-            @param[in]  nodeCodeList      Node codes(Big Endian)
-            @param[out] keyVersions       Key Version of each Node (Big Endian)
-            @return                          = 1: Success
-                                             < 0: error
+            :param  nodeCodeList:      Node codes(Big Endian)
+            :returns:   (status, keyVersions)
+                        status      1: Success, < 0: error
+                        keyVersions Key Version of each Node (Big Endian)
         """
-
+        no_data = []
+        numNode = len(nodeCodeList)
         if (numNode > FELICA_REQ_SERVICE_MAX_NODE_NUM):
             DMSG("numNode is too large\n")
-            return -1
+            return -1, no_data
 
-        cmdLen = 1 + 8 + 1 + 2 * numNode
-        cmd = [FELICA_CMD_REQUEST_SERVICE] + self._felicaIDm[:8] + [numNode]
+        cmd = bytearray([FELICA_CMD_REQUEST_SERVICE]) + self._felicaIDm[:8] + bytearray([numNode])
         for i in range(numNode):
             cmd.append(nodeCodeList[i] & 0xFF)
             cmd.append((nodeCodeList[i] >> 8) & 0xff)
 
-        response = []
-        responseLength = 0
-
-        if (self.felica_SendCommand(cmd, cmdLen, response, responseLength) != 1):
+        status, response = self.felica_SendCommand(cmd)
+        if (status != 1):
             DMSG("Request Service command failed\n")
-            return -2
+            return -2, no_data
 
         # length check
+        responseLength = len(response)
         if (responseLength != 10 + 2 * numNode):
             DMSG("Request Service command failed (wrong response length)\n")
-            return -3
+            return -3, no_data
 
+        keyVersions = []
         for i in range(numNode):
-            keyVersions[i] = (response[10 + i * 2] + (response[10 + i * 2 + 1] << 8)) & 0xFF
+            keyVersions.append(response[10 + i * 2] + (response[10 + i * 2 + 1] << 8))
 
-        return 1
+        return 1, keyVersions
 
-    def felica_RequestResponse(self, mode: str) -> int:
+    def felica_RequestResponse(self) -> (int, int):
         """
-        @brief  Sends FeliCa Request Service command
+        Sends FeliCa Request Response command
 
-        @param[out]  mode         Current Mode of the card
-        @return                   = 1: Success
-                                  < 0: error
+        :returns:     (status, mode)
+                    status  1: Success, < 0: error
+                    mode    Current Mode of the card
         """
 
-        cmd = [FELICA_CMD_REQUEST_RESPONSE] + self._felicaIDm[:8]
+        cmd = bytearray([FELICA_CMD_REQUEST_RESPONSE]) + self._felicaIDm[:8]
 
-        response = []
-        responseLength = 0
-        if (self.felica_SendCommand(cmd, 9, response, responseLength) != 1):
+        status, response = self.felica_SendCommand(cmd)
+        responseLength = len(response)
+        if (status != 1):
             DMSG("Request Response command failed\n")
-            return -1
+            return -1, -1
 
         # length check
         if (responseLength != 10):
             DMSG("Request Response command failed (wrong response length)\n")
-            return -2
+            return -2, -1
 
         mode = response[9]
-        return 1
+        return 1, mode
 
-    def felica_ReadWithoutEncryption(self, numService: int, serviceCodeList: str, numBlock: int, blockList: str,
-                                     blockData: str) -> int:
+    def felica_ReadWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int]) -> (int, List[bytearray]):
 
         """
-            @brief  Sends FeliCa Read Without Encryption command
+            Sends FeliCa Read Without Encryption command
 
-            @param[in]  numService         Length of the serviceCodeList
-            @param[in]  serviceCodeList    Service Code List (Big Endian)
-            @param[in]  numBlock           Length of the blockList
-            @param[in]  blockList          Block List (Big Endian, This API only accepts 2-byte block list element)
-            @param[out] blockData          Block Data
-            @return                        = 1: Success
-                                           < 0: error
+            :param  serviceCodeList:    Service Code List (Big Endian)
+            :param  blockList:          Block List (Big Endian, This API only accepts 2-byte block list element)
+            :returns:       (status, blockData)
+                              status    1: Success, < 0: error
+                              blockData Block Data
         """
+        no_data = []
+        numService =  len(serviceCodeList)
         if (numService > FELICA_READ_MAX_SERVICE_NUM):
             DMSG("numService is too large\n")
-            return -1
+            return -1, no_data
 
+        numBlock = len(blockList)
         if (numBlock > FELICA_READ_MAX_BLOCK_NUM):
             DMSG("numBlock is too large\n")
-            return -2
+            return -2, no_data
 
-        cmdLen = 1 + 8 + 1 + 2 * numService + 1 + 2 * numBlock
-        cmd = [FELICA_CMD_READ_WITHOUT_ENCRYPTION] + self._felicaIDm[:8] + [numService]
+        cmd = bytearray([FELICA_CMD_READ_WITHOUT_ENCRYPTION]) + self._felicaIDm[:8] + bytearray([numService])
         for i in range(numService):
             cmd.append(serviceCodeList[i] & 0xFF)
             cmd.append((serviceCodeList[i] >> 8) & 0xff)
@@ -1192,51 +1072,44 @@ class pn532:
             cmd.append((blockList[i] >> 8) & 0xFF)
             cmd.append(blockList[i] & 0xff)
 
-        response = []
-        responseLength = 0
-        if (self.felica_SendCommand(cmd, cmdLen, response, responseLength) != 1):
+        status, response = self.felica_SendCommand(cmd)
+        if (status != 1):
             DMSG("Read Without Encryption command failed\n")
-            return -3
+            return -3, no_data
 
 
         # length check
+        responseLength = len(response)
         if (responseLength != 12 + 16 * numBlock):
             DMSG("Read Without Encryption command failed (wrong response length)\n")
-            return -4
+            return -4, no_data
 
         # status flag check
         if (response[9] != 0 or response[10] != 0):
             DMSG("Read Without Encryption command failed (Status Flag: ")
-            DMSG_HEX(self.pn532_packetbuffer[9])
-            DMSG_HEX(self.pn532_packetbuffer[10])
+            DMSG_HEX(response[9])
+            DMSG_HEX(response[10])
             DMSG(")\n")
-            return -5
+            return -5, no_data
 
         k = 12
+        blockData = []
         for i in range(numBlock):
-            for j in range(8):
-                blockData[i][j] = response[k]
-                k += 1
+            start = 12+ i * 16
+            blockData.append(response[start: start + 16])
 
-        return 1
+        return 1, blockData
 
-
-
-    def felica_WriteWithoutEncryption(self, numService: int, serviceCodeList: str, numBlock: int, blockList: str,
-                                      blockData: str) -> int:
+    def felica_WriteWithoutEncryption(self, serviceCodeList: List[int], blockList: List[int], blockData: List[bytearray]) -> int:
 
         """
-                @brief  Sends FeliCa Write Without Encryption command
+            Sends FeliCa Write Without Encryption command
 
-            @param[in]  numService         Length of the serviceCodeList
-            @param[in]  serviceCodeList    Service Code List (Big Endian)
-            @param[in]  numBlock           Length of the blockList
-            @param[in]  blockList          Block List (Big Endian, This API only accepts 2-byte block list element)
-            @param[in]  blockData          Block Data (each Block has 16 bytes)
-            @return                        = 1: Success
-                                           < 0: error
+            :param  serviceCodeList:    Service Code List (Big Endian)
+            :param  blockList:          Block List (Big Endian, This API only accepts 2-byte block list element)
+            :returns:       status    1: Success, < 0: error
         """
-
+        numService, numBlock = len(serviceCodeList), len(blockList)
         if (numService > FELICA_WRITE_MAX_SERVICE_NUM):
             DMSG("numService is too large\n")
             return -1
@@ -1245,14 +1118,7 @@ class pn532:
             DMSG("numBlock is too large\n")
             return -2
 
-        i, j , k = (0, 0, 0)
-        cmdLen = 1 + 8 + 1 + 2 * numService + 1 + 2 * numBlock + 16 * numBlock
-        cmd = [cmdLen]
-        cmd.append(FELICA_CMD_WRITE_WITHOUT_ENCRYPTION)
-        for i in range(8):
-            cmd.append(self._felicaIDm[i])
-
-        cmd.append(numService)
+        cmd = bytearray([FELICA_CMD_WRITE_WITHOUT_ENCRYPTION]) + self._felicaIDm[:8] + bytearray([numService])
         for i in range(numService):
             cmd.append(serviceCodeList[i] & 0xFF)
             cmd.append((serviceCodeList[i] >> 8) & 0xff)
@@ -1266,12 +1132,11 @@ class pn532:
             for k in range(16):
                 cmd.append(blockData[i][k])
 
-        response = []
-        responseLength = 0
-        if (self.felica_SendCommand(cmd, cmdLen, response, responseLength) != 1):
+        status, response = self.felica_SendCommand(cmd)
+        responseLength = len(response)
+        if (status != 1):
             DMSG("Write Without Encryption command failed\n")
             return -3
-
 
         # length check
         if (responseLength != 11):
@@ -1281,83 +1146,78 @@ class pn532:
         # status flag check
         if (response[9] != 0 or response[10] != 0):
             DMSG("Write Without Encryption command failed (Status Flag: ")
-            DMSG_HEX(self.pn532_packetbuffer[9])
-            DMSG_HEX(self.pn532_packetbuffer[10])
+            DMSG_HEX(response[9])
+            DMSG_HEX(response[10])
             DMSG(")\n")
             return -5
 
         return 1
-    
 
-    def felica_RequestSystemCode(self, numSystemCode: str, systemCodeList:str) -> int:
+    def felica_RequestSystemCode(self) -> (int, List[int]):
         """
-                @brief  Sends FeliCa Request System Code command
+        Sends FeliCa Request System Code command
 
-        @param[out] numSystemCode        Length of the systemCodeList
-        @param[out] systemCodeList       System Code list (Array length should longer than 16)
-        @return                          = 1: Success
-                                         < 0: error
+        :returns:   (status, systemCodeList)
+                    status          1: Success, < 0: error
+                    systemCodeList  System Code list (Array length should longer than 16)
+
          """
 
-        cmd = [FELICA_CMD_REQUEST_SYSTEM_CODE] + self._felicaIDm[:8]
+        cmd = bytearray([FELICA_CMD_REQUEST_SYSTEM_CODE]) + self._felicaIDm[:8]
 
-        response = []
-        responseLength = []
-        if (self.felica_SendCommand(cmd, 9, response, responseLength) != 1):
+        status, response = self.felica_SendCommand(cmd)
+        responseLength = len(response)
+        if (status != 1):
             DMSG("Request System Code command failed\n")
-            return -1
+            return -1, []
 
         numSystemCode = response[9]
 
         # length check
         if (responseLength < 10 + 2 * numSystemCode):
             DMSG("Request System Code command failed (wrong response length)\n")
-            return -2
+            return -2, []
 
-        i = 0
+        systemCodeList = []
         for i in range(numSystemCode):
-            systemCodeList[i] = ((response[10 + i * 2] << 8) + response[10 + i * 2 + 1]) & 0xFFFF
+            systemCodeList.append((response[10 + i * 2] << 8) + response[10 + i * 2 + 1])
 
-        return 1
-    
-
+        return 1, systemCodeList
 
     # ************************************************************************
     # !
-
     
     # ************************************************************************
     def felica_Release(self) -> int:
         """
-                @brief  Release FeliCa card
-        @return                          = 1: Success
-                                         < 0: error
+        Release FeliCa card
+        :returns:   1: Success, < 0: error
         """
     
         # InRelease
-        self.pn532_packetbuffer[0] = PN532_COMMAND_INRELEASE
-        self.pn532_packetbuffer[1] = 0x00   # All target
+        header = bytearray([
+            PN532_COMMAND_INRELEASE,
+            0x00,  # All target
+        ])
+
         DMSG("Release all FeliCa target\n")
 
-        if (self._interface.writeCommand(self.pn532_packetbuffer, 2)):
+        if (self._interface.writeCommand(header)):
             DMSG("No ACK\n")
             return -1  # no ACK
 
-
         # Wait card response
-        frameLength = self._interface.readResponse(self.pn532_packetbuffer, len(self.pn532_packetbuffer), 1000)
+        frameLength, response = self._interface.readResponse()
         if (frameLength < 0):
             DMSG("Could not receive response\n")
             return -2
 
 
-        # Check status (pn532_packetbuffer[0])
-        if ((self.pn532_packetbuffer[0] & 0x3F)!=0):
+        # Check status (response[0])
+        if ((response[0] & 0x3F)!=0):
             DMSG("Status code indicates an error: ")
-            DMSG_HEX(self.pn532_packetbuffer[7])
+            DMSG_HEX(response[7])
             DMSG("\n")
             return -3
 
-
         return 1
-    
