@@ -6,6 +6,7 @@ from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE
     PN532_ACK_WAIT_TIME
 from PN532.pn532_log import DMSG, DMSG_HEX
 
+PN532_WAKEUP = bytearray([0x55, 0x55, 0x00, 0x00, 0x00])
 
 class pn532hsu(pn532Interface):
     RPI_MINI_UART = 0
@@ -21,11 +22,7 @@ class pn532hsu(pn532Interface):
         self._serial.open()
     
     def wakeup(self):
-        self._serial.write(b'\x55')
-        self._serial.write(b'\x55')
-        self._serial.write(b'\x00')
-        self._serial.write(b'\x00')
-        self._serial.write(b'\x00')
+        self._serial.write(PN532_WAKEUP)
     
         #  dump serial buffer 
         if (self._serial.inWaiting()):
@@ -44,7 +41,8 @@ class pn532hsu(pn532Interface):
             DMSG_HEX(ret)
 
         self.command = header[0]
-    
+
+        self._serial.write(PN532_WAKEUP)    # Extra long Preamble in case PN532 is in low VBat mode
         self._serial.write(bytearray([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]))
     
         length = len(header) + len(body) + 1 # length of data field: TFI + DATA
