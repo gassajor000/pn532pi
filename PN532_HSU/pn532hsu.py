@@ -6,7 +6,7 @@ from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE
     PN532_ACK_WAIT_TIME
 from PN532.pn532_log import DMSG, DMSG_HEX
 
-PN532_WAKEUP = bytearray([0x55, 0x55, 0x00, 0x00, 0x00])
+PN532_WAKEUP = bytearray([0x55, 0x00, 0x00, 0x55])
 
 class pn532hsu(pn532Interface):
     RPI_MINI_UART = 0
@@ -72,15 +72,15 @@ class pn532hsu(pn532Interface):
             return PN532_INVALID_FRAME, bytearray()
     
         # receive length and check 
-        num, length = self.receive(2, timeout)
+        num, tmp = self.receive(2, timeout)
         if (num <= 0):
-            return PN532_TIMEOUT, length
-        if (0 != (length[0] + length[1]) & 0xff):
+            return PN532_TIMEOUT, tmp
+
+        length, lchksm = tmp[0], tmp[1]        
+        if (0 != (length + lchksm) & 0xff):
             DMSG("Length error")
             return PN532_INVALID_FRAME, bytearray()
-        length[0] -= 2
-        if (length[0] > len):
-            return PN532_NO_SPACE, bytearray()
+        length -= 2
 
         # receive self.command byte 
         cmd = self.command + 1 # response self.command
@@ -91,8 +91,8 @@ class pn532hsu(pn532Interface):
             DMSG("Command error")
             return PN532_INVALID_FRAME, bytearray()
 
-        num, buf = self.receive(length[0], timeout)
-        if (num != length[0]):
+        num, buf = self.receive(length, timeout)
+        if (num != length):
             return PN532_TIMEOUT, buf
         dsum = PN532_PN532TOHOST + cmd + sum(buf)
 
@@ -104,7 +104,7 @@ class pn532hsu(pn532Interface):
             DMSG("Checksum error")
             return PN532_INVALID_FRAME, bytearray()
 
-        return length[0]
+        return length, buf
 
     def readAckFrame(self):
         PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
@@ -122,30 +122,22 @@ class pn532hsu(pn532Interface):
         return 0
 
 
-    def receive(self, length: int, timeout: int) -> (int, bytearray):
+    def receive(self, num: int, timeout: int) -> (int, bytearray):
         """
         Receive data
-        :param len: length expect to receive.
+        :param num: number expecting to receive.
         :para timeout: time to receive data (milliseconds)
-        :returns: (num, data)
+        :returns: (num_read, data)
                     num: int, >= 0 number of bytes received, < 0 Error
                     data: bytearray, data received
         """
-        read_bytes = 0
-        rx_data = bytearray()
+        
         self._serial.timeout = timeout / 1000.0
+        rx_data = self._serial.read(num)  
+        read_bytes = len(rx_data)
 
-        while (read_bytes < length):
-            data = self._serial.read()
-            if (data):
-                rx_data += data
-                read_bytes += len(data)
-                break
+        if read_bytes < num:
+            return PN532_TIMEOUT, rx_data
 
-            else:  # Timed out
-                if (read_bytes):
-                    return read_bytes, rx_data
-                else:
-                    return PN532_TIMEOUT, bytearray()
 
         return read_bytes, rx_data
