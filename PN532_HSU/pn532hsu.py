@@ -1,4 +1,4 @@
-
+from serial import Serial
 import time
 
 from PN532.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
@@ -8,56 +8,56 @@ from PN532.pn532_log import DMSG, DMSG_HEX
 
 
 class pn532hsu(pn532Interface):
-    def __init__(self, serial: HardwareSerial):
-        self._serial = serial
+    RPI_MINI_UART = 0
+    RPI_PL011 = 1
+
+    def __init__(self, port: int):
+        assert port in [self.RPI_MINI_UART, self.RPI_MINI_UART], 'Invalid RPI UART port %d' % port
+        self._serial = Serial('/dev/serial' + str(port), baudrate=115200, timeout=100)
+        self._serial.close()
         self.command = 0
     
     def begin(self):
-        self._serial.begin(115200)
+        self._serial.open()
     
     def wakeup(self):
-        self._serial.write(0x55)
-        self._serial.write(0x55)
-        self._serial.write(0x00)
-        self._serial.write(0x00)
-        self._serial.write(0x00)
+        self._serial.write(b'\x55')
+        self._serial.write(b'\x55')
+        self._serial.write(b'\x00')
+        self._serial.write(b'\x00')
+        self._serial.write(b'\x00')
     
         #  dump serial buffer 
-        if (self._serial.available()):
+        if (self._serial.inWaiting()):
             DMSG("Dump serial buffer: ")
-        while (self._serial.available()):
+        while (self._serial.inWaiting()):
             ret = self._serial.read()
             DMSG_HEX(ret)
 
     def writeCommand(self, header: bytearray, body: bytearray = bytearray()) -> int:
 
         # dump serial buffer 
-        if (self._serial.available()):
+        if (self._serial.inWaiting()):
             DMSG("Dump serial buffer: ")
-        while (self._serial.available()):
+        while (self._serial.inWaiting()):
             ret = self._serial.read()
             DMSG_HEX(ret)
 
         self.command = header[0]
     
-        self._serial.write(PN532_PREAMBLE)
-        self._serial.write(PN532_STARTCODE1)
-        self._serial.write(PN532_STARTCODE2)
+        self._serial.write(bytearray([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]))
     
         length = len(header) + len(body) + 1 # length of data field: TFI + DATA
-        self._serial.write(length)
-        self._serial.write(~length + 1)  # checksum of length
+        self._serial.write(bytearray([length, (~length + 1) & 0xff, PN532_HOSTTOPN532]))  # checksum of length
     
-        self._serial.write(PN532_HOSTTOPN532)
         dsum = PN532_HOSTTOPN532 + sum(header) + sum(body)
     
         DMSG("\nWrite: ")
     
-        self._serial.write(header, len(header))
+        self._serial.write(header)
     
-        checksum = ~dsum + 1  # checksum of TFI + DATA
-        self._serial.write(checksum)
-        self._serial.write(PN532_POSTAMBLE)
+        checksum = (~dsum + 1) & 0xff  # checksum of TFI + DATA
+        self._serial.write(bytearray([checksum, PN532_POSTAMBLE]))
     
         return self.readAckFrame()
 
@@ -68,43 +68,43 @@ class pn532hsu(pn532Interface):
         # Frame Preamble and Start Code 
         num, tmp = self.receive(3, timeout)
         if (num <= 0):
-            return PN532_TIMEOUT
+            return PN532_TIMEOUT, tmp
         if (0 != tmp[0] or 0 != tmp[1] or 0xFF != tmp[2]):
             DMSG("Preamble error")
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, bytearray()
     
         # receive length and check 
         num, length = self.receive(2, timeout)
         if (num <= 0):
-            return PN532_TIMEOUT
+            return PN532_TIMEOUT, length
         if (0 != (length[0] + length[1]) & 0xff):
             DMSG("Length error")
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, bytearray()
         length[0] -= 2
         if (length[0] > len):
-            return PN532_NO_SPACE
+            return PN532_NO_SPACE, bytearray()
 
         # receive self.command byte 
         cmd = self.command + 1 # response self.command
         num, tmp = self.receive(2, timeout)
         if (num <= 0):
-            return PN532_TIMEOUT
+            return PN532_TIMEOUT, tmp
         if (PN532_PN532TOHOST != tmp[0] or cmd != tmp[1]):
             DMSG("Command error")
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, bytearray()
 
         num, buf = self.receive(length[0], timeout)
         if (num != length[0]):
-            return PN532_TIMEOUT
+            return PN532_TIMEOUT, buf
         dsum = PN532_PN532TOHOST + cmd + sum(buf)
 
         # checksum and postamble 
         num, tmp = self.receive(2, timeout)
         if (num <= 0):
-            return PN532_TIMEOUT
+            return PN532_TIMEOUT, tmp
         if (0 != (dsum + tmp[0]) & 0xff or 0 != tmp[1]):
             DMSG("Checksum error")
-            return PN532_INVALID_FRAME
+            return PN532_INVALID_FRAME, bytearray()
 
         return length[0]
 
@@ -135,19 +135,16 @@ class pn532hsu(pn532Interface):
         """
         read_bytes = 0
         rx_data = bytearray()
+        self._serial.timeout = timeout / 1000.0
 
         while (read_bytes < length):
-            start_time = time.time()
-            end_time = start_time + timeout/1000.0
-            data = bytearray()
-            while ((timeout == 0) or time.time() < end_time):
-                data = self._serial.read()
-                if (data):
-                    rx_data += data
-                    read_bytes += len(data)
-                    break
+            data = self._serial.read()
+            if (data):
+                rx_data += data
+                read_bytes += len(data)
+                break
 
-            if (not data):  # Timed out
+            else:  # Timed out
                 if (read_bytes):
                     return read_bytes, rx_data
                 else:
