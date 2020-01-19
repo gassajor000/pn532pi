@@ -13,7 +13,7 @@ class pn532hsu(pn532Interface):
     RPI_PL011 = 1
 
     def __init__(self, port: int):
-        assert port in [self.RPI_MINI_UART, self.RPI_MINI_UART], 'Invalid RPI UART port %d' % port
+        assert port in [self.RPI_MINI_UART, self.RPI_PL011], 'Invalid RPI UART port %d' % port
         self._serial = Serial('/dev/serial' + str(port), baudrate=115200, timeout=100)
         self._serial.close()
         self.command = 0
@@ -27,7 +27,6 @@ class pn532hsu(pn532Interface):
         #  dump serial buffer 
         if (self._serial.inWaiting()):
             DMSG("Dump serial buffer: ")
-        while (self._serial.inWaiting()):
             ret = self._serial.read()
             DMSG_HEX(ret)
 
@@ -36,7 +35,6 @@ class pn532hsu(pn532Interface):
         # dump serial buffer 
         if (self._serial.inWaiting()):
             DMSG("Dump serial buffer: ")
-        while (self._serial.inWaiting()):
             ret = self._serial.read()
             DMSG_HEX(ret)
 
@@ -53,7 +51,8 @@ class pn532hsu(pn532Interface):
         DMSG("\nWrite: ")
     
         self._serial.write(header)
-    
+        self._serial.write(body)
+
         checksum = (~dsum + 1) & 0xff  # checksum of TFI + DATA
         self._serial.write(bytearray([checksum, PN532_POSTAMBLE]))
     
@@ -116,7 +115,7 @@ class pn532hsu(pn532Interface):
             DMSG("Timeout\n")
             return PN532_TIMEOUT
 
-        if (ackBuf == PN532_ACK):
+        if (ackBuf != PN532_ACK):
             DMSG("Invalid\n")
             return PN532_INVALID_ACK
         return 0
