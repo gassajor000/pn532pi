@@ -37,7 +37,7 @@ with mock.patch.dict('sys.modules', modules):
 PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 
 
-class TestPn532i2c(TestCase):
+class TestPn532hsu(TestCase):
     def test_begin(self):
         """pn532hsu.begin initializes with the correct parameters"""
         pn532 = pn532hsu(pn532hsu.RPI_MINI_UART)
