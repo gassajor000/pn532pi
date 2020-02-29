@@ -9,7 +9,7 @@ from PN532_SPI.pn532spi import pn532spi
 
 SPI = False
 I2C = False
-HSU = False
+HSU = True
 
 if SPI:
     PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)

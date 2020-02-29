@@ -18,23 +18,25 @@
     To enable debug message, define DEBUG in PN532/pn532_log.h
 """
 import time
+import binascii
 
 from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
 from PN532.pn532_log import PrintHexChar
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
+from PN532_HSU.pn532hsu import pn532hsu
 
 # Set the desired interface to True
 SPI = False
-I2C = True
-HSU = False
+I2C = False
+HSU = True
 
 if SPI:
     PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
     nfc = pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
 elif HSU:
-    PN532_HSU = pn532hsu(Serial1)
+    PN532_HSU = pn532hsu(pn532hsu.RPI_MINI_UART)
     nfc = pn532(PN532_HSU)
 
 # When the number after #if & #elif set as 0, it will be switch to I2C Mode
@@ -71,7 +73,7 @@ def loop():
         #  Display some basic information about the card
         print("Found an ISO14443A card")
         print("UID Length: {:d}".format(len(uid)))
-        print("UID Value: {}".format(uid))
+        print("UID Value: {}".format(binascii.hexlify(uid)))
 
         if (len(uid) == 4):
             #  We probably have a Mifare Classic card ...
