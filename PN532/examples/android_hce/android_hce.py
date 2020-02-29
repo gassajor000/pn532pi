@@ -1,4 +1,3 @@
-# Set the desired interface to True
 import time
 
 from PN532.pn532 import pn532
@@ -7,6 +6,7 @@ from PN532_HSU.pn532hsu import pn532hsu
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
 
+# Set the desired interface to True
 SPI = False
 I2C = False
 HSU = True

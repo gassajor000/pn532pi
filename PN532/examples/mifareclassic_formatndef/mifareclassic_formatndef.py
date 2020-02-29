@@ -148,7 +148,7 @@ def loop():
 
   # Wait a bit before trying again
   print("\n\nDone!")
-  time.sleep(1000)
+  time.sleep(1)
 
 if __name__ == '__main__':
     setup()
