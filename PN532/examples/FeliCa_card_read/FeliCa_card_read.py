@@ -8,7 +8,7 @@
 import time
 import binascii
 
-from PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
+from PN532.pn532 import pn532
 from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
 from PN532_HSU.pn532hsu import pn532hsu
