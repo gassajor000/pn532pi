@@ -1,19 +1,48 @@
 # snep_test.ino
 # send a SNEP message to android and get a message from android
-import binascii
 import time
+import binascii
 
 from PN532.pn532 import pn532
 from PN532.snep import snep
+from PN532_I2C.pn532i2c import pn532i2c
 from PN532_SPI.pn532spi import pn532spi
+from PN532_HSU.pn532hsu import pn532hsu
 
-PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
-nfc = snep(pn532(PN532_SPI))
+
+# Set the desired interface to True
+SPI = False
+I2C = False
+HSU = True
+
+if SPI:
+    PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
+    PN532 = pn532(PN532_SPI)
+# When the number after #elif set as 1, it will be switch to HSU Mode
+elif HSU:
+    PN532_HSU = pn532hsu(0)
+    PN532 = pn532(PN532_HSU)
+
+# When the number after #if & #elif set as 0, it will be switch to I2C Mode
+elif I2C:
+    PN532_I2C = pn532i2c(1)
+    PN532 = pn532(PN532_I2C)
+
+nfc = snep(PN532)
 
 
 def setup():
     print("-------Peer to Peer--------")
-    PN532_SPI.begin()
+    PN532.begin()
+
+    versiondata = PN532.getFirmwareVersion()
+    if not versiondata:
+        print("Didn't find PN53x board")
+        raise RuntimeError("Didn't find PN53x board")  # halt
+
+    # Got ok data, print it out!
+    print("Found chip PN5 {:#x} Firmware ver. {:d}.{:d}".format((versiondata >> 24) & 0xFF, (versiondata >> 16) & 0xFF,
+                                                                (versiondata >> 8) & 0xFF))
 
 
 message = bytearray([
@@ -23,6 +52,7 @@ message = bytearray([
 
 
 def loop():
+    print("Sending SNEP message")    
     nfc.write(message)
     time.sleep(3)
 

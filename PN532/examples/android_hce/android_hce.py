@@ -1,4 +1,5 @@
 import time
+import binascii
 
 from PN532.pn532 import pn532
 from PN532.pn532_log import PrintHexChar
@@ -69,20 +70,16 @@ def loop():
 
     if (success):
 
-      print("responseLength: ")
-      print(len(response))
-
-      PrintHexChar(response, len(response))
+      print("responseLength: {:d}", len(response))
+      print(binascii.hexlify(response))
 
       while (success):
         apdu = bytearray(b"Hello from Arduino")
         success, back = nfc.inDataExchange(apdu)
 
         if (success):
-          print("responseLength: ")
-          print(len(back))
-
-          PrintHexChar(back, len(back))
+          print("responseLength: {:d}", len(back))
+          print(binascii.hexlify(back))
         else:
           print("Broken connection?")
     else:

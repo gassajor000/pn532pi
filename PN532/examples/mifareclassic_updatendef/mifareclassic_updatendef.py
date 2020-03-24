@@ -75,8 +75,7 @@ def loop():
   keya = bytearray([ 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 ])
   keyb = bytearray([ 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 ])
 
-  print("Place your NDEF formatted Mifare Classic card on the reader to update the")
-  input("NDEF record and press any key to continue ...")
+  print("Place your NDEF formatted Mifare Classic card on the reader to update the NDEF record")
   # Wait for user input before proceeding
 
   # Wait for an ISO14443A type card (Mifare, etc.).  When one is found
@@ -129,8 +128,12 @@ def loop():
     else:
       print("NDEF Record creation failed! :(")
 
+    print("Done!")
+    input("Press any key to run again")
+    
+  else:
+    print("Timed out waiting for card")    
   # Wait a bit before trying again
-  print("\n\nDone!")
   time.sleep(1)
 
 

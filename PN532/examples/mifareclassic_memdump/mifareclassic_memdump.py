@@ -80,8 +80,7 @@ def loop():
         # If the sector hasn't been authenticated, do so first
         if (not authenticated):
           # Starting of a new sector ... try to to authenticate
-          print("------------------------Sector {:d}".format(int(currentblock / 4)))
-          print("-------------------------")
+          print("------------------------Sector {:d}-------------------------".format(int(currentblock / 4)))
           if (currentblock == 0):
               # This will be 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF for Mifare Classic (non-NDEF!)
               # or 0xA0 0xA1 0xA2 0xA3 0xA4 0xA5 for NDEF formatted cards using key a,
@@ -119,8 +118,9 @@ def loop():
             print(" unable to read this block")
     else:
       print("Ooops ... this doesn't seem to be a Mifare Classic card!")
-  # Wait a bit before trying again
-  input("\n\nSend a character to run the mem dumper again!")
+
+    # Wait a bit before trying again
+    input("\n\nSend a character to run the mem dumper again!")
 
 
 if __name__ == '__main__':
