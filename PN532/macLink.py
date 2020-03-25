@@ -6,7 +6,6 @@ class macLink:
         self.pn532 = interface
 
     def activateAsTarget(self, timeout: int) -> int:
-        self.pn532.begin()
         self.pn532.SAMConfig()
         return self.pn532.tgInitAsTargetP2P(timeout)
 

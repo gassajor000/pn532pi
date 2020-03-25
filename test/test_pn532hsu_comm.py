@@ -1,14 +1,14 @@
 """
     created by Jordan Gassaway, 12/3/2019
-    Test communication with PN532 over i2c
+    Test communication with PN532 over UART
 """
 from unittest import TestCase
-from PN532_I2C.pn532i2c import pn532i2c
+from PN532_HSU.pn532hsu import pn532hsu
 
 
-class TestPn532i2cComm(TestCase):
+class TestPn532hsuComm(TestCase):
     def setUp(self):
-        self.pn532 = pn532i2c(1)
+        self.pn532 = pn532hsu(0)
         self.pn532.begin()
 
     def test_getFirmware(self):

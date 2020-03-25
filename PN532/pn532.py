@@ -751,6 +751,7 @@ class pn532:
         """
             'InLists' a passive target. PN532 acting as reader/initiator,
             peer acting as card/responder.
+            :returns: True if command succeeded, False otherwise
         """
         header = bytearray([
             PN532_COMMAND_INLISTPASSIVETARGET,
