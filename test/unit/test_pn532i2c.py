@@ -48,7 +48,8 @@ class MockI2C(mock.Mock):
 MOCK_I2C = MockI2C(id='my mock_i2c')
 
 modules = {'quick2wire.i2c': mock.MagicMock(I2CMaster=mock.MagicMock(return_value=MOCK_I2C), reading=mock_reading,
-                                            writing=mock_writing)}
+                                            writing=mock_writing),
+           'serial': mock.MagicMock(), 'spidev': mock.MagicMock()}
 with mock.patch.dict('sys.modules', modules):
     from pn532pi.interfaces.pn532i2c import Pn532I2c
 

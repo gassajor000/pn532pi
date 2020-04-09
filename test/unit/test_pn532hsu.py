@@ -30,7 +30,8 @@ class MockUART(mock.Mock):
 
 MOCK_UART = MockUART(id='my mock_uart')
 
-modules = {'serial': mock.MagicMock(Serial=mock.MagicMock(return_value=MOCK_UART))}
+modules = {'serial': mock.MagicMock(Serial=mock.MagicMock(return_value=MOCK_UART)),
+           'quick2wire.i2c': mock.MagicMock(), 'spidev': mock.MagicMock()}
 with mock.patch.dict('sys.modules', modules):
     from pn532pi.interfaces.pn532hsu import Pn532Hsu
 
