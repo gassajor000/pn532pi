@@ -9,10 +9,9 @@ import time
 import binascii
 
 from pn532pi.PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
-from pn532pi.PN532_I2C.pn532i2c import pn532i2c
-from pn532pi.PN532_SPI.pn532spi import pn532spi
-from pn532pi.PN532_HSU import pn532hsu
-
+from pn532pi.interfaces.pn532i2c import pn532i2c
+from pn532pi.interfaces.pn532spi import pn532spi
+from pn532pi.interfaces.pn532hsu import pn532hsu
 
 # Set the desired interface to True
 SPI = False

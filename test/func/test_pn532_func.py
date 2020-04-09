@@ -3,7 +3,7 @@
     Test pn532 functions
 """
 from unittest import TestCase
-from pn532pi.PN532_I2C.pn532i2c import pn532i2c
+from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.PN532.pn532 import pn532
 
 class TestPn532Func(TestCase):

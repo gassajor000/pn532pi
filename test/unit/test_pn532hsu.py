@@ -32,7 +32,7 @@ MOCK_UART = MockUART(id='my mock_uart')
 
 modules = {'serial': mock.MagicMock(Serial=mock.MagicMock(return_value=MOCK_UART))}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.PN532_HSU.pn532hsu import pn532hsu
+    from pn532pi.interfaces.pn532hsu import pn532hsu
 
 PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 

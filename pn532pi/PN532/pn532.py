@@ -6,7 +6,7 @@
 """
 from typing import List
 
-from pn532pi.PN532.pn532Interface import pn532Interface, PN532_TIMEOUT
+from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
 from pn532pi.PN532.pn532_log import DMSG, DMSG_HEX

@@ -36,7 +36,7 @@ MOCK_SPI = MockSpi(id='my mock_spi')
 
 modules = {'spidev': mock.MagicMock(SpiDev=mock.MagicMock(return_value=MOCK_SPI))}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.PN532_SPI.pn532spi import pn532spi
+    from pn532pi.interfaces.pn532spi import pn532spi
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 

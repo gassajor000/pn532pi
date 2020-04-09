@@ -5,7 +5,7 @@
 import re
 from unittest import TestCase, mock
 from pn532pi.PN532.pn532 import pn532
-from pn532pi.PN532.pn532Interface import pn532Interface
+from pn532pi.interfaces.pn532Interface import pn532Interface
 
 
 def _mock_interface(resp_frames):

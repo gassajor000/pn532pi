@@ -3,7 +3,7 @@
     Test communication with PN532 over UART
 """
 from unittest import TestCase
-from pn532pi.PN532_HSU import pn532hsu
+from pn532pi.interfaces import pn532hsu
 
 
 class TestPn532hsuComm(TestCase):
