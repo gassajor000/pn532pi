@@ -5,14 +5,14 @@
 from unittest import TestCase, mock
 
 from pn532pi.pn532.emulatetag import EmulateTag
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 
 
 def _mock_pn532(resp_frames):
     """
     :param resp_frames: list of byte strings to return from tgGetData()
     """
-    link = mock.MagicMock(spec=pn532)
+    link = mock.MagicMock(spec=Pn532)
     link.return_value = link
     link.tgGetData.side_effect = resp_frames
     link.tgSetData.return_value = True

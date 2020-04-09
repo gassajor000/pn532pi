@@ -4,7 +4,7 @@
 """
 import re
 from unittest import TestCase, mock
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 from pn532pi.interfaces.pn532Interface import Pn532Interface
 
 
@@ -33,7 +33,7 @@ class TestPn532(TestCase):
             (0, b'\x01\x02\x03\x04')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         fw_ver = nfc.getFirmwareVersion()
         self.assertEqual(fw_ver, 0x1020304, 'Incorrect firmware version returned')
         interface.writeCommand.assert_called_with(b'\x02')
@@ -44,7 +44,7 @@ class TestPn532(TestCase):
             (0, bytearray())
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         ret = nfc.SAMConfig()
         self.assertTrue(ret, 'SAMConfig failed')
@@ -60,7 +60,7 @@ class TestPn532(TestCase):
             (0, b'\xab\x02\x03')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         gpio = nfc.readGPIO()
         self.assertEqual(gpio, 0xab, 'Incorrect gpio data returned')
@@ -72,7 +72,7 @@ class TestPn532(TestCase):
             (0, bytearray())
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         result = nfc.writeGPIO(0xcd)
         self.assertTrue(result, 'writeGPIO failed!')
@@ -84,7 +84,7 @@ class TestPn532(TestCase):
             (0, b'\xab')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         data = nfc.readRegister(3)
         self.assertEqual(data, 0xab, 'Incorrect register data returned')
@@ -96,7 +96,7 @@ class TestPn532(TestCase):
             (0, bytearray())
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         result = nfc.writeRegister(0xabcd, 0x22)
         self.assertTrue(result, 'writeRegister failed!')
@@ -108,7 +108,7 @@ class TestPn532(TestCase):
             (0, b'\x00\x01\x02\x03\x04')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, data = nfc.inDataExchange(b'\x0a\x0b\x0c\x0d')
         self.assertTrue(status, 'inDataExchange failed!')
@@ -125,7 +125,7 @@ class TestPn532(TestCase):
             (0, b'\x00')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status = nfc.inRelease(relevantTarget=0x3)
         self.assertTrue(status, 'inRelease failed!')
@@ -139,7 +139,7 @@ class TestPn532(TestCase):
             (0, b'\x01\x07\x02\x03\x04\x02\xaa\xbb')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, data = nfc.readPassiveTargetID(cardbaudrate=0, inlist=True)
         self.assertTrue(status, 'readPassiveTargetID failed!')
@@ -156,7 +156,7 @@ class TestPn532(TestCase):
             (0, b'')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status = nfc.setRFField(autoRFCA=True, RFOn=True)
         self.assertTrue(status, 'setRFField failed!')
@@ -176,7 +176,7 @@ class TestPn532(TestCase):
             (0, b'\x02')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status = nfc.tgSetData(header=b'\x01\x02', body=b'\xaa\xbb')
         self.assertTrue(status, 'tgSetData failed!')
@@ -196,7 +196,7 @@ class TestPn532(TestCase):
             (6, b'\x02abcde'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, data = nfc.tgGetData()
         self.assertEqual(5, status, 'tgGetData failed!')
@@ -215,7 +215,7 @@ class TestPn532(TestCase):
             (0, b'\x00')
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         uid = b'\x0a\x0b\x0c\x0d'
         key = b'\xff\xfe\xfd\xfc\xfb\xfa'
 
@@ -237,7 +237,7 @@ class TestPn532(TestCase):
             (0, b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x13\x14\x15\x16\x17\x18'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, data = nfc.mifareclassic_ReadDataBlock(blockNumber=0x12)
         self.assertTrue(status, 'mifareclassic_ReadDataBlock failed!')
@@ -253,7 +253,7 @@ class TestPn532(TestCase):
             (0, b'\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status= nfc.mifareclassic_WriteDataBlock(blockNumber=0x12, data=b'\x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x13\x14\x15\x16\x17\x18')
         self.assertTrue(status, 'mifareclassic_WriteDataBlock failed!')
@@ -270,7 +270,7 @@ class TestPn532(TestCase):
             (0, b'\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status= nfc.mifareclassic_FormatNDEF()
         self.assertTrue(status, 'mifareclassic_FormatNDEF failed!')
@@ -292,7 +292,7 @@ class TestPn532(TestCase):
             (0, b'\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         tests = [
             (1, 'hi.org'),                  # len 6
@@ -323,7 +323,7 @@ class TestPn532(TestCase):
             (0, b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x13\x14\x15\x16\x17\x18'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, data = nfc.mifareultralight_ReadPage(page=0x12)
         self.assertTrue(status, 'mifareultralight_ReadPage failed!')
@@ -338,7 +338,7 @@ class TestPn532(TestCase):
             (0, b'\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status= nfc.mifareultralight_WritePage(page=0x12, buffer=b'\x01\x02\x03\x04\x05\x06')
         self.assertTrue(status, 'mifareultralight_WritePage failed!')
@@ -353,7 +353,7 @@ class TestPn532(TestCase):
             (0, b'\x01\x05\x14\x01\x01\x02\x03\x04\x05\x06\x07\x08\x11\x12\x13\x14\x15\x16\x17\x18\x0a\x0b'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status, idm, pwm, resp_code = nfc.felica_Polling(systemCode=0xfafb, requestCode=0x33)
         self.assertTrue(status, 'felica_Polling failed!')
@@ -373,7 +373,7 @@ class TestPn532(TestCase):
             (0, b'\x06\x04\xd1\xd2\xd3\xd4'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc.inListedTag = 0x05
 
         status, response = nfc.felica_SendCommand(command=b'command')
@@ -390,7 +390,7 @@ class TestPn532(TestCase):
             (1, b'\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\x01\x00\x02\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc._felicaIDm = b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
         with mock.patch.object(nfc, 'felica_SendCommand') as mock_send_cmd:
@@ -408,7 +408,7 @@ class TestPn532(TestCase):
             (1, b'\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xd1'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc._felicaIDm = b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
         with mock.patch.object(nfc, 'felica_SendCommand') as mock_send_cmd:
@@ -428,7 +428,7 @@ class TestPn532(TestCase):
              b'\x21\x22\x23\x24\x25\x26\x27\x28\x31\x32\x33\x34\x35\x36\x37\x38'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc._felicaIDm = b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
         with mock.patch.object(nfc, 'felica_SendCommand') as mock_send_cmd:
@@ -450,7 +450,7 @@ class TestPn532(TestCase):
             (1, b'\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\x00\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc._felicaIDm = b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
         with mock.patch.object(nfc, 'felica_SendCommand') as mock_send_cmd:
@@ -471,7 +471,7 @@ class TestPn532(TestCase):
             (1, b'\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\x02\x00\xd1\x00\xd2'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
         nfc._felicaIDm = b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
         with mock.patch.object(nfc, 'felica_SendCommand') as mock_send_cmd:
@@ -490,7 +490,7 @@ class TestPn532(TestCase):
             (0, b'\x00'),
         ]
         interface = _mock_interface(resp_frames=frames)
-        nfc = pn532(interface)
+        nfc = Pn532(interface)
 
         status = nfc.felica_Release()
         self.assertEqual(1, status, 'felica_Release failed!')

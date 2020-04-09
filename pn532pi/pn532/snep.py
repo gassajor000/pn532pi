@@ -1,5 +1,5 @@
-from pn532pi.pn532.llcp import llcp
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.llcp import Llcp
+from pn532pi.pn532.pn532 import Pn532
 from pn532pi.pn532.pn532_log import DMSG
 
 SNEP_DEFAULT_VERSION	= 0x10	# Major: 1, Minor: 0
@@ -11,9 +11,9 @@ SNEP_RESPONSE_SUCCESS	= 0x81
 SNEP_RESPONSE_REJECT	= 0xFF
 
 
-class snep:
-    def __init__(self, interface: pn532):
-        self.llcp = llcp(interface)
+class Snep:
+    def __init__(self, interface: Pn532):
+        self.llcp = Llcp(interface)
 
     def write(self, buf: bytearray, timeout: int = 0) -> int:
         """

@@ -1,5 +1,5 @@
-from pn532pi.pn532.macLink import macLink
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.macLink import MacLink
+from pn532pi.pn532.pn532 import Pn532
 
 # LLCP PDU Type Values
 from pn532pi.pn532.pn532_log import DMSG
@@ -47,11 +47,11 @@ def getSSAP(buf):
 def getDSAP(buf):
     return buf[0] >> 2
 
-class llcp:
+class Llcp:
     SYMM_PDU = [0, 0]
 
-    def __init__(self, interface: pn532):
-        self.link = macLink(interface)
+    def __init__(self, interface: Pn532):
+        self.link = MacLink(interface)
         self.ns = 0
         self.nr = 0
         self.mode = 0

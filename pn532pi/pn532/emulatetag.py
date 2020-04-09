@@ -5,7 +5,7 @@
     """
 from typing import Callable, Any
 
-from pn532pi.pn532.pn532 import pn532, PN532_COMMAND_TGINITASTARGET
+from pn532pi.pn532.pn532 import Pn532, PN532_COMMAND_TGINITASTARGET
 from pn532pi.pn532.pn532_log import DMSG
 
 NDEF_MAX_LENGTH = 128  # altough ndef can handle up to 0xfffe in size, arduino cannot.
@@ -58,7 +58,7 @@ RESPCMD_END_OF_FILE_BEFORE_REACHED_LE_BYTES = 4
 
 
 class EmulateTag:
-    def __init__(self, interface: pn532):
+    def __init__(self, interface: Pn532):
         self.pn532 = interface
         self.uid = bytearray()
         self.tagWrittenByInitiator = False

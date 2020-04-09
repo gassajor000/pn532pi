@@ -4,15 +4,15 @@
 """
 from unittest import TestCase, mock
 
-from pn532pi.pn532.llcp import llcp, buildHeader
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.llcp import Llcp, buildHeader
+from pn532pi.pn532.pn532 import Pn532
 
 
 def _mock_link(resp_frames):
     """
     :param resp_frames: list of byte strings to return from read()
     """
-    link = mock.MagicMock(spec=pn532)
+    link = mock.MagicMock(spec=Pn532)
     link.tgGetData.side_effect = resp_frames
     link.tgSetData.return_value = True
     return link
@@ -63,7 +63,7 @@ class TestLlcp(TestCase):
             (2, b'\x11\x03')
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         status = nfc.waitForConnection()
         self.assertEqual(1, status, 'waitForConnection failed!')
@@ -78,7 +78,7 @@ class TestLlcp(TestCase):
             (2, b'\x11\x4d')
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         status = nfc.waitForDisconnection()
         self.assertEqual(1, status, 'waitForDisconnection failed!')
@@ -92,7 +92,7 @@ class TestLlcp(TestCase):
             (2, b'\x01\x80')
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         status = nfc.connect()
         self.assertEqual(1, status, 'connect failed!')
@@ -108,7 +108,7 @@ class TestLlcp(TestCase):
             (2, b'\x11\xA0'),
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         status = nfc.disconnect()
         self.assertEqual(1, status, 'disconnect failed!')
@@ -123,7 +123,7 @@ class TestLlcp(TestCase):
             (10, b'\x03\x00\x73data100'),
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         for test in frames:
             length, packet = test
@@ -140,7 +140,7 @@ class TestLlcp(TestCase):
             (2, b'\x03\x40'),
         ]
         link = _mock_link(resp_frames=frames)
-        nfc = llcp(link)
+        nfc = Llcp(link)
 
         status = nfc.write(bytearray(b'header'), bytearray(b'body'))
         self.assertTrue(status, 'write failed!')

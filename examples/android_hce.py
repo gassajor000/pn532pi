@@ -1,7 +1,7 @@
 import time
 import binascii
 
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 from pn532pi.interfaces.pn532hsu import Pn532Hsu
 from pn532pi.interfaces.pn532i2c import Pn532I2c
 from pn532pi.interfaces.pn532spi import Pn532Spi
@@ -13,16 +13,16 @@ HSU = True
 
 if SPI:
     PN532_SPI = Pn532Spi(Pn532Spi.SS0_GPIO8)
-    nfc = pn532(PN532_SPI)
+    nfc = Pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
 elif HSU:
     PN532_HSU = Pn532Hsu(Pn532Hsu.RPI_MINI_UART)
-    nfc = pn532(PN532_HSU)
+    nfc = Pn532(PN532_HSU)
 
 # When the number after #if & #elif set as 0, it will be switch to I2C Mode
 elif I2C:
     PN532_I2C = Pn532I2c(1)
-    nfc = pn532(PN532_I2C)
+    nfc = Pn532(PN532_I2C)
 
 def setup():
   print("-------Peer to Peer HCE--------")

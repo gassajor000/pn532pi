@@ -4,15 +4,15 @@
 """
 from unittest import TestCase, mock
 
-from pn532pi.pn532.llcp import llcp
-from pn532pi.pn532.snep import snep
+from pn532pi.pn532.llcp import Llcp
+from pn532pi.pn532.snep import Snep
 
 
 def _mock_llcp(resp_frames):
     """
     :param resp_frames: list of byte strings to return from read()
     """
-    link = mock.MagicMock(spec=llcp)
+    link = mock.MagicMock(spec=Llcp)
     link.return_value = link
     link.read.side_effect = resp_frames
     link.write.return_value = True
@@ -37,8 +37,8 @@ class TestSnep(TestCase):
             (13, b'\x10\x02\x00\x00\x00\x07data100'),
         ]
         link = _mock_llcp(resp_frames=frames)
-        with mock.patch('pn532pi.pn532.snep.llcp', new=link):
-            nfc = snep(link)
+        with mock.patch('pn532pi.pn532.snep.Llcp', new=link):
+            nfc = Snep(link)
 
             for test in frames:
                 length, packet = test
@@ -54,8 +54,8 @@ class TestSnep(TestCase):
             (6, b'\x10\x81abcd'),
         ]
         link = _mock_llcp(resp_frames=frames)
-        with mock.patch('pn532pi.pn532.snep.llcp', new=link):
-            nfc = snep(link)
+        with mock.patch('pn532pi.pn532.snep.Llcp', new=link):
+            nfc = Snep(link)
 
             status = nfc.write(bytearray(b'data'))
             self.assertEqual(1, status, 'write failed!')

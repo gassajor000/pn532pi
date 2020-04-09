@@ -127,7 +127,7 @@ FELICA_WRITE_MAX_BLOCK_NUM          = 10 # for typical FeliCa card
 FELICA_REQ_SERVICE_MAX_NODE_NUM     = 32
 
 
-class pn532:
+class Pn532:
     def __init__(self, interface: Pn532Interface):
         self._interface = interface
 

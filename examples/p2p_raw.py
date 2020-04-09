@@ -3,8 +3,8 @@
 import time
 import binascii
 
-from pn532pi.pn532.pn532 import pn532
-from pn532pi.pn532.snep import snep
+from pn532pi.pn532.pn532 import Pn532
+from pn532pi.pn532.snep import Snep
 from pn532pi.interfaces.pn532i2c import Pn532I2c
 from pn532pi.interfaces.pn532spi import Pn532Spi
 from pn532pi.interfaces.pn532hsu import Pn532Hsu
@@ -17,18 +17,18 @@ HSU = True
 
 if SPI:
     PN532_SPI = Pn532Spi(Pn532Spi.SS0_GPIO8)
-    PN532 = pn532(PN532_SPI)
+    PN532 = Pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
 elif HSU:
     PN532_HSU = Pn532Hsu(0)
-    PN532 = pn532(PN532_HSU)
+    PN532 = Pn532(PN532_HSU)
 
 # When the number after #if & #elif set as 0, it will be switch to I2C Mode
 elif I2C:
     PN532_I2C = Pn532I2c(1)
-    PN532 = pn532(PN532_I2C)
+    PN532 = Pn532(PN532_I2C)
 
-nfc = snep(PN532)
+nfc = Snep(PN532)
 
 
 def setup():

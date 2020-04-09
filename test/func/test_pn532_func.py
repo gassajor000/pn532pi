@@ -4,14 +4,14 @@
 """
 from unittest import TestCase
 from pn532pi.interfaces.pn532i2c import Pn532I2c
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 
 class TestPn532Func(TestCase):
     def setUp(self):
         # self.interface = pn532spi(pn532spi.SS0_GPIO8)
         self.interface = Pn532I2c(1)
         self.interface.begin()
-        self.pn532 = pn532(self.interface)
+        self.pn532 = Pn532(self.interface)
 
     def test_getFirmware(self):
         fw_ver = self.pn532.getFirmwareVersion()

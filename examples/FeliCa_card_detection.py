@@ -8,7 +8,7 @@
 import time
 import binascii
 
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 from pn532pi.interfaces.pn532i2c import Pn532I2c
 from pn532pi.interfaces.pn532spi import Pn532Spi
 from pn532pi.interfaces.pn532hsu import Pn532Hsu
@@ -20,14 +20,14 @@ HSU = True
 
 if SPI:
     PN532_SPI = Pn532Spi(Pn532Spi.SS0_GPIO8)
-    nfc = pn532(PN532_SPI)
+    nfc = Pn532(PN532_SPI)
 elif HSU:
     PN532_HSU = Pn532Hsu(0)
-    nfc = pn532(PN532_HSU)
+    nfc = Pn532(PN532_HSU)
 
 elif I2C:
     PN532_I2C = Pn532I2c(1)
-    nfc = pn532(PN532_I2C)
+    nfc = Pn532(PN532_I2C)
 
 
 def millis():

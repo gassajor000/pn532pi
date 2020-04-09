@@ -1,8 +1,8 @@
-from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532 import Pn532
 
 
-class macLink:
-    def __init__(self, interface: pn532):
+class MacLink:
+    def __init__(self, interface: Pn532):
         self.pn532 = interface
 
     def activateAsTarget(self, timeout: int) -> int:
