@@ -1,6 +1,6 @@
-from pn532pi.PN532.llcp import llcp
-from pn532pi.PN532.pn532 import pn532
-from pn532pi.PN532.pn532_log import DMSG
+from pn532pi.pn532.llcp import llcp
+from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.pn532_log import DMSG
 
 SNEP_DEFAULT_VERSION	= 0x10	# Major: 1, Minor: 0
 

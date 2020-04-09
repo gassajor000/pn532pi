@@ -3,12 +3,12 @@
     card or tag and retrieve some basic information about it
     that can be used to determine what type of card it is.
 
-    To enable debug message, define DEBUG in PN532/PN532_debug.h
+    To enable debug message, define DEBUG in pn532/pn532_debug.h
 """
 import time
 import binascii
 
-from pn532pi.PN532.pn532 import pn532
+from pn532pi.pn532.pn532 import pn532
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi
 from pn532pi.interfaces.pn532hsu import pn532hsu
@@ -39,7 +39,7 @@ def millis():
 
 def setup():
     print("NTAG21x R/W")
-    print("-------Looking for PN532--------")
+    print("-------Looking for pn532--------")
 
     nfc.begin()
 
@@ -54,7 +54,7 @@ def setup():
 
     # Set the max number of retry attempts to read from a card
     # This prevents us from waiting forever for a card, which is
-    # the default behaviour of the PN532.
+    # the default behaviour of the pn532.
     nfc.setPassiveActivationRetries(0xFF)
     nfc.SAMConfig()
 

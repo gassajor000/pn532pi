@@ -6,12 +6,12 @@
     Note that you need the baud rate to be 115200 because we need to print
     out the data and read from the card at the same time!
 
-    To enable debug message, define DEBUG in PN532/PN532_debug.h
+    To enable debug message, define DEBUG in pn532/pn532_debug.h
 """
 import binascii
 import time
 
-from pn532pi.PN532.pn532 import pn532, NDEF_URIPREFIX_HTTP_WWWDOT, PN532_MIFARE_ISO14443A_106KBPS
+from pn532pi.pn532.pn532 import pn532, NDEF_URIPREFIX_HTTP_WWWDOT, PN532_MIFARE_ISO14443A_106KBPS
 from pn532pi.interfaces.pn532hsu import pn532hsu
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi

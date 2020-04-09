@@ -2,13 +2,13 @@
     Updates a sector that is already formatted for NDEF (using
     mifareclassic_formatndef.py for example), inserting a new url
 
-    To enable debug message, define DEBUG in PN532/PN532_debug.h
+    To enable debug message, define DEBUG in pn532/pn532_debug.h
 """
 
 import time
 import binascii
 
-from pn532pi.PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS, NDEF_URIPREFIX_HTTP_WWWDOT
+from pn532pi.pn532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS, NDEF_URIPREFIX_HTTP_WWWDOT
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi
 from pn532pi.interfaces.pn532hsu import pn532hsu

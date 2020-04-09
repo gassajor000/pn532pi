@@ -3,8 +3,8 @@
 import time
 import binascii
 
-from pn532pi.PN532.pn532 import pn532
-from pn532pi.PN532.snep import snep
+from pn532pi.pn532.pn532 import pn532
+from pn532pi.pn532.snep import snep
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi
 from pn532pi.interfaces.pn532hsu import pn532hsu

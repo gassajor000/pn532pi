@@ -5,7 +5,7 @@ from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIM
     PN532_HOSTTOPN532, PN532_POSTAMBLE, REVERSE_BITS_ORDER
 from spidev import SpiDev
 
-from pn532pi.PN532.pn532_log import DMSG
+from pn532pi.pn532.pn532_log import DMSG
 
 STATUS_READ = 2
 DATA_WRITE = 1

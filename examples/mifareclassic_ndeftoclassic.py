@@ -3,12 +3,12 @@
     formatted for NDEF messages using mifareclassic_formatndef, and resets
     the authentication keys back to the Mifare Classic defaults
 
-    To enable debug message, define DEBUG in PN532/PN532_debug.h
+    To enable debug message, define DEBUG in pn532/pn532_debug.h
 """
 import binascii
 import time
 
-from pn532pi.PN532.pn532 import PN532_MIFARE_ISO14443A_106KBPS, pn532
+from pn532pi.pn532.pn532 import PN532_MIFARE_ISO14443A_106KBPS, pn532
 from pn532pi.interfaces.pn532hsu import pn532hsu
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi

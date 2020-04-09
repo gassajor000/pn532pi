@@ -3,12 +3,12 @@
     card or tag and retrieve some basic information about it
     that can be used to determine what type of card it is.   
    
-    To enable debug message, set DEBUG in PN532/PN532_log.h
+    To enable debug message, set DEBUG in pn532/PN532_log.h
 """
 import time
 import binascii
 
-from pn532pi.PN532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
+from pn532pi.pn532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
 from pn532pi.interfaces.pn532i2c import pn532i2c
 from pn532pi.interfaces.pn532spi import pn532spi
 from pn532pi.interfaces.pn532hsu import pn532hsu
@@ -45,7 +45,7 @@ def setup():
                                                                 (versiondata >> 8) & 0xFF))
     # Set the max number of retry attempts to read from a card
     # This prevents us from waiting forever for a card, which is
-    # the default behaviour of the PN532.
+    # the default behaviour of the pn532.
     nfc.setPassiveActivationRetries(0xFF)
 
     # configure board to read RFID tags
@@ -68,7 +68,7 @@ def loop():
         time.sleep(1)
         return True
     else:
-        # PN532 probably timed out waiting for a card
+        # pn532 probably timed out waiting for a card
         print("Timed out waiting for a card")
         return False
 
