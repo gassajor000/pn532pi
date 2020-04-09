@@ -9,6 +9,7 @@ except:        # Allow unit tests to run without importing interfaces
 
 
 from pn532pi.pn532.pn532_log import DEBUG
+from pn532pi.pn532 import pn532
 from pn532pi.pn532.pn532 import Pn532
 from pn532pi.pn532.llcp import Llcp
 from pn532pi.pn532.snep import Snep
