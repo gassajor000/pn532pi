@@ -3,7 +3,7 @@
     Test communication with PN532 over spi
 """
 from unittest import TestCase
-from PN532_SPI.pn532spi import pn532spi
+from pn532pi.PN532_SPI.pn532spi import pn532spi
 
 class TestPn532spiComm(TestCase):
     def setUp(self):

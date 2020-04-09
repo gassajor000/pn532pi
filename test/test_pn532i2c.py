@@ -50,7 +50,7 @@ MOCK_I2C = MockI2C(id='my mock_i2c')
 modules = {'quick2wire.i2c': mock.MagicMock(I2CMaster=mock.MagicMock(return_value=MOCK_I2C), reading=mock_reading,
                                             writing=mock_writing)}
 with mock.patch.dict('sys.modules', modules):
-    from PN532_I2C.pn532i2c import pn532i2c
+    from pn532pi.PN532_I2C.pn532i2c import pn532i2c
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 

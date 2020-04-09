@@ -4,8 +4,8 @@
 """
 from unittest import TestCase, mock
 
-from PN532.emulatetag import EmulateTag
-from PN532.pn532 import pn532
+from pn532pi.PN532.emulatetag import EmulateTag
+from pn532pi.PN532.pn532 import pn532
 
 
 def _mock_pn532(resp_frames):

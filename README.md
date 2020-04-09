@@ -2,8 +2,8 @@
 
 This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/Seeed-Studio/PN532) for using the PN532 chip with Raspberry Pi. 
 
-![Raspberry Pi](https://github.com/gassajor000/pyndef/blob/master/14643-Raspberry_Pi_3_B_-02.jpg?raw=true)
-![PN532](https://github.com/gassajor000/pyndef/blob/master/PN532--NFC-RFID-Module.jpg?raw=true)
+![Raspberry Pi](https://github.com/gassajor000/pyndef/blob/master/docs/14643-Raspberry_Pi_3_B_-02.jpg?raw=true)
+![PN532](https://github.com/gassajor000/pyndef/blob/master/docs/PN532--NFC-RFID-Module.jpg?raw=true)
 
 ### Features
 + Support all interfaces of PN532 (I2C, SPI, HSU )
@@ -45,7 +45,7 @@ Instead you will need another power source (3.3v) to power the PN532
 ## I2C Interface
 
 I2C is short for Inter-integrated Circuit. I2C interface needs only 4 wires to connect PN532 with Raspbeery Pi.
-![I2C Connection](https://github.com/gassajor000/pyndef/blob/master/rpi_i2c_connection.png?raw=true)
+![I2C Connection](https://github.com/gassajor000/pyndef/blob/master/docs/rpi_i2c_connection.png?raw=true)
 
 To use the I2C bus 1 to control PN532, refer to the code below.
 ```python

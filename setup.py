@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pyndef-gassajor000",
+    name="pn532pi",
     version="1.0",
     author="gassajor000",
     author_email="lgassjsg@example.com",
