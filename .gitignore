@@ -9,3 +9,6 @@
 *.sr
 .idea/
 .vscode/
+dist/
+build/
+*.egg*/
