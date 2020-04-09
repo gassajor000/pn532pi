@@ -3,13 +3,13 @@ import time
 from pn532pi.pn532.pn532_log import DMSG
 from quick2wire.i2c import I2CMaster, writing, reading
 
-from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
+from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
     PN532_INVALID_FRAME, PN532_POSTAMBLE, PN532_PN532TOHOST, PN532_ACK_WAIT_TIME, PN532_TIMEOUT, \
     PN532_INVALID_ACK
 
 PN532_I2C_ADDRESS =  (0x48 >> 1)
 
-class pn532i2c(pn532Interface):
+class Pn532I2c(Pn532Interface):
     RPI_BUS0 = 0
     RPI_BUS1 = 1
 

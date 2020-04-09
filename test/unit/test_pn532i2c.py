@@ -50,7 +50,7 @@ MOCK_I2C = MockI2C(id='my mock_i2c')
 modules = {'quick2wire.i2c': mock.MagicMock(I2CMaster=mock.MagicMock(return_value=MOCK_I2C), reading=mock_reading,
                                             writing=mock_writing)}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.interfaces.pn532i2c import pn532i2c
+    from pn532pi.interfaces.pn532i2c import Pn532I2c
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
@@ -58,21 +58,21 @@ PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 class TestPn532i2c(TestCase):
     def test_begin(self):
         """pn532i2c.begin initializes with the correct parameters"""
-        pn532 = pn532i2c(bus=pn532i2c.RPI_BUS1)
+        pn532 = Pn532I2c(bus=Pn532I2c.RPI_BUS1)
         pn532.begin()
 
         modules['quick2wire.i2c'].I2CMaster.assert_called_once_with(1)  # I2C Bus 1
 
     def test_wakeup(self):
         """pn532i2c.wakeup writes some data to the spi port"""
-        pn532 = pn532i2c(bus=pn532i2c.RPI_BUS1)
+        pn532 = Pn532I2c(bus=Pn532I2c.RPI_BUS1)
         pn532.begin()
         pn532.wakeup()  #  check bytes written/transfered
         self.assertTrue(MOCK_I2C._write_bytes.called, "write transaction not called")
 
     def test_writeCommand(self):
         """pn532i2c.writeCommand writes command frames correctly"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         frames = [  #  header, body, bytes written
@@ -90,7 +90,7 @@ class TestPn532i2c(TestCase):
 
     def test_invalid_ack(self):
         """writeCommand waits for an ack"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         # correct ack
@@ -105,7 +105,7 @@ class TestPn532i2c(TestCase):
 
     def test_wait_for_ready(self):
         """writeCommand waits for a status of 1 before reading ack"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         # no ready/ack
@@ -119,7 +119,7 @@ class TestPn532i2c(TestCase):
 
     def test_readResponse(self):
         """readResponse correctly parses a response frame"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         frames = [ # cmd    resp data    resp frame
@@ -139,7 +139,7 @@ class TestPn532i2c(TestCase):
 
     def test_invalid_length(self):
         """readResponse rejects frame with invalid length or invalid length checksum"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         # Bad length checksum
@@ -159,7 +159,7 @@ class TestPn532i2c(TestCase):
 
     def test_invalid_preamble(self):
         """readResponse rejects frame with invalid preamble"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         # Bad length checksum
@@ -173,7 +173,7 @@ class TestPn532i2c(TestCase):
 
     def test_invalid_checksum(self):
         """readResponse rejects frame with invalid checksum"""
-        pn532 = pn532i2c(1)
+        pn532 = Pn532I2c(1)
         pn532.begin()
 
         # Bad length checksum

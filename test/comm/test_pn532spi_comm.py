@@ -3,11 +3,11 @@
     Test communication with PN532 over spi
 """
 from unittest import TestCase
-from pn532pi.interfaces.pn532spi import pn532spi
+from pn532pi.interfaces.pn532spi import Pn532Spi
 
 class TestPn532spiComm(TestCase):
     def setUp(self):
-        self.pn532 = pn532spi(ss=pn532spi.SS0_GPIO8)
+        self.pn532 = Pn532Spi(ss=Pn532Spi.SS0_GPIO8)
         self.pn532.begin()
 
     def test_getFirmware(self):

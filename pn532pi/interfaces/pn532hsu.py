@@ -1,13 +1,13 @@
 from serial import Serial
 
-from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
+from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
     PN532_POSTAMBLE, PN532_TIMEOUT, PN532_INVALID_FRAME, PN532_PN532TOHOST, PN532_INVALID_ACK, \
     PN532_ACK_WAIT_TIME
 from pn532pi.pn532.pn532_log import DMSG, DMSG_HEX
 
 PN532_WAKEUP = bytearray([0x55, 0x00, 0x00, 0x55])
 
-class pn532hsu(pn532Interface):
+class Pn532Hsu(Pn532Interface):
     RPI_MINI_UART = 0
     RPI_PL011 = 1
 

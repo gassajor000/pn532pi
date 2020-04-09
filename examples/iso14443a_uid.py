@@ -9,9 +9,9 @@ import time
 import binascii
 
 from pn532pi.pn532.pn532 import pn532, PN532_MIFARE_ISO14443A_106KBPS
-from pn532pi.interfaces.pn532i2c import pn532i2c
-from pn532pi.interfaces.pn532spi import pn532spi
-from pn532pi.interfaces.pn532hsu import pn532hsu
+from pn532pi.interfaces.pn532i2c import Pn532I2c
+from pn532pi.interfaces.pn532spi import Pn532Spi
+from pn532pi.interfaces.pn532hsu import Pn532Hsu
 
 # Set the desired interface to True
 SPI = False
@@ -19,16 +19,16 @@ I2C = False
 HSU = True
 
 if SPI:
-    PN532_SPI = pn532spi(pn532spi.SS0_GPIO8)
+    PN532_SPI = Pn532Spi(Pn532Spi.SS0_GPIO8)
     nfc = pn532(PN532_SPI)
 # When the number after #elif set as 1, it will be switch to HSU Mode
 elif HSU:
-    PN532_HSU = pn532hsu(0)
+    PN532_HSU = Pn532Hsu(0)
     nfc = pn532(PN532_HSU)
 
 # When the number after #if & #elif set as 0, it will be switch to I2C Mode
 elif I2C:
-    PN532_I2C = pn532i2c(1)
+    PN532_I2C = Pn532I2c(1)
     nfc = pn532(PN532_I2C)
 
 

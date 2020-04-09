@@ -32,7 +32,7 @@ MOCK_UART = MockUART(id='my mock_uart')
 
 modules = {'serial': mock.MagicMock(Serial=mock.MagicMock(return_value=MOCK_UART))}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.interfaces.pn532hsu import pn532hsu
+    from pn532pi.interfaces.pn532hsu import Pn532Hsu
 
 PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 
@@ -40,21 +40,21 @@ PN532_ACK = bytearray([0, 0, 0xFF, 0, 0xFF, 0])
 class TestPn532hsu(TestCase):
     def test_begin(self):
         """pn532hsu.begin initializes with the correct parameters"""
-        pn532 = pn532hsu(pn532hsu.RPI_MINI_UART)
+        pn532 = Pn532Hsu(Pn532Hsu.RPI_MINI_UART)
         pn532.begin()
 
         modules['serial'].Serial.assert_called_once_with('/dev/serial0', baudrate=115200, timeout=100)  # Mini UART
 
     def test_wakeup(self):
         """pn532hsu.wakeup writes some data to the spi port"""
-        pn532 = pn532hsu(pn532hsu.RPI_MINI_UART)
+        pn532 = Pn532Hsu(Pn532Hsu.RPI_MINI_UART)
         pn532.begin()
         pn532.wakeup()  #  check bytes written/transfered
         self.assertTrue(MOCK_UART._mock_write.called, "write transaction not called")
 
     def test_writeCommand(self):
         """pn532hsu.writeCommand writes command frames correctly"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         frames = [  #  header, body, bytes written
@@ -73,7 +73,7 @@ class TestPn532hsu(TestCase):
 
     def test_invalid_ack(self):
         """writeCommand waits for an ack"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         # correct ack
@@ -88,7 +88,7 @@ class TestPn532hsu(TestCase):
 
     def test_readResponse(self):
         """readResponse correctly parses a response frame"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         frames = [ # cmd    resp data    resp frame
@@ -108,7 +108,7 @@ class TestPn532hsu(TestCase):
 
     def test_invalid_length(self):
         """readResponse rejects frame with invalid length or invalid length checksum"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         # Bad length checksum
@@ -128,7 +128,7 @@ class TestPn532hsu(TestCase):
 
     def test_invalid_preamble(self):
         """readResponse rejects frame with invalid preamble"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         # Bad length checksum
@@ -142,7 +142,7 @@ class TestPn532hsu(TestCase):
 
     def test_invalid_checksum(self):
         """readResponse rejects frame with invalid checksum"""
-        pn532 = pn532hsu(1)
+        pn532 = Pn532Hsu(1)
         pn532.begin()
 
         # Bad length checksum

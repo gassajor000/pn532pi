@@ -5,14 +5,14 @@
 import re
 from unittest import TestCase, mock
 from pn532pi.pn532.pn532 import pn532
-from pn532pi.interfaces.pn532Interface import pn532Interface
+from pn532pi.interfaces.pn532Interface import Pn532Interface
 
 
 def _mock_interface(resp_frames):
     """
     :param resp_frames: list of frames to return from calls readResponse (status, frame)
     """
-    interface = mock.MagicMock(spec=pn532Interface)
+    interface = mock.MagicMock(spec=Pn532Interface)
     interface.readResponse.side_effect = resp_frames
     interface.writeCommand.return_value = 0
     return interface

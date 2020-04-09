@@ -3,12 +3,12 @@
     Test communication with PN532 over i2c
 """
 from unittest import TestCase
-from pn532pi.interfaces.pn532i2c import pn532i2c
+from pn532pi.interfaces.pn532i2c import Pn532I2c
 
 
 class TestPn532i2cComm(TestCase):
     def setUp(self):
-        self.pn532 = pn532i2c(1)
+        self.pn532 = Pn532I2c(1)
         self.pn532.begin()
 
     def test_getFirmware(self):

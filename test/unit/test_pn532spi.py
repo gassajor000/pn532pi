@@ -36,14 +36,14 @@ MOCK_SPI = MockSpi(id='my mock_spi')
 
 modules = {'spidev': mock.MagicMock(SpiDev=mock.MagicMock(return_value=MOCK_SPI))}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.interfaces.pn532spi import pn532spi
+    from pn532pi.interfaces.pn532spi import Pn532Spi
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
 class TestPn532spi(TestCase):
     def test_begin(self):
         """pn532spi.begin initializes with the correct parameters"""
-        pn532 = pn532spi(ss=pn532spi.SS0_GPIO8)
+        pn532 = Pn532Spi(ss=Pn532Spi.SS0_GPIO8)
         pn532.begin()
 
         self.assertEqual(0, MOCK_SPI.mode, "spi mode not set to 0!")
@@ -52,31 +52,31 @@ class TestPn532spi(TestCase):
         MOCK_SPI.open.assert_called_once_with(0, 0)     # SPI Bus 0, SS 0
 
         MOCK_SPI.reset_mock()
-        pn532 = pn532spi(ss=pn532spi.SS1_GPIO7)
+        pn532 = Pn532Spi(ss=Pn532Spi.SS1_GPIO7)
         pn532.begin()
 
         MOCK_SPI.open.assert_called_once_with(0, 1)  # SPI Bus 0, SS 1
 
     def test_invalidSlaveSelect(self):
         """pn532spi accepts only valid slave select values"""
-        pn532spi(ss=0)
-        pn532spi(ss=1)
+        Pn532Spi(ss=0)
+        Pn532Spi(ss=1)
 
         with self.assertRaises(AssertionError):
-            pn532spi(ss=3)
+            Pn532Spi(ss=3)
 
         with self.assertRaises(AssertionError):
-            pn532spi(ss='invalid ss')
+            Pn532Spi(ss='invalid ss')
 
     def test_wakeup(self):
         """pn532spi.wakeup writes some data to the spi port"""
-        pn532 = pn532spi(ss=pn532spi.SS0_GPIO8)
+        pn532 = Pn532Spi(ss=Pn532Spi.SS0_GPIO8)
         pn532.wakeup()  #  check bytes written/transfered
         self.assertTrue(MOCK_SPI._mock_writebytes.called or MOCK_SPI._mock_xfer2.called, "writebytes or xfer2 not called")
 
     def test_writeCommand(self):
         """pn532spi.writeCommand writes command frames correctly"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
         rev_b = {'01': 128, '02': 64, '03': 192,  '04': 32, 'D4': 43, '70': 98, '80': 10, '60': 60, '50': 76,
                  '~02': 127, '~03': 191, '~04': 63, 'c7080': 105, 'c6023': 215, 'c50': 95}
         frames = [  #  header, body, bytes written
@@ -94,7 +94,7 @@ class TestPn532spi(TestCase):
 
     def test_invalid_ack(self):
         """writeCommand waits for an ack"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         # correct ack
         MOCK_SPI.read_buf = [0, 128, 128] + PN532_ACK
@@ -108,7 +108,7 @@ class TestPn532spi(TestCase):
 
     def test_wait_for_ready(self):
         """writeCommand waits for a status of 1 before reading ack"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         # no ready/ack
         ret = pn532.writeCommand(header=bytearray([2]), body=bytearray())
@@ -121,7 +121,7 @@ class TestPn532spi(TestCase):
 
     def test_readResponse(self):
         """readResponse correctly parses a response frame"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
                  '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
@@ -142,7 +142,7 @@ class TestPn532spi(TestCase):
 
     def test_invalid_length(self):
         """readResponse rejects frame with invalid length or invalid length checksum"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
                  '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
@@ -163,7 +163,7 @@ class TestPn532spi(TestCase):
 
     def test_invalid_preamble(self):
         """readResponse rejects frame with invalid preamble"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
                  '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}
@@ -179,7 +179,7 @@ class TestPn532spi(TestCase):
 
     def test_invalid_checksum(self):
         """readResponse rejects frame with invalid checksum"""
-        pn532 = pn532spi(0)
+        pn532 = Pn532Spi(0)
 
         rev_b = {'01': 128, '02': 64, '03': 192, '04': 32, 'D5': 171, '70': 98, '80': 10, '60': 60, '50': 76,
                  '~02': 127, '~03': 191, '~04': 63, '~027080': 201, '~6023': 215, '~0360': 55}

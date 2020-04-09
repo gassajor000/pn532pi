@@ -6,10 +6,10 @@
 """
 from typing import List
 
-from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_TIMEOUT
+from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
-from pn532pi.PN532.pn532_log import DMSG, DMSG_HEX
+from pn532pi.pn532.pn532_log import DMSG, DMSG_HEX
 
 PN532_COMMAND_DIAGNOSE              = (0x00)
 PN532_COMMAND_GETFIRMWAREVERSION    = (0x02)
@@ -128,7 +128,7 @@ FELICA_REQ_SERVICE_MAX_NODE_NUM     = 32
 
 
 class pn532:
-    def __init__(self, interface: pn532Interface):
+    def __init__(self, interface: Pn532Interface):
         self._interface = interface
 
         self._uid = []  # ISO14443A uid

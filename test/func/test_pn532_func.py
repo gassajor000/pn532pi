@@ -3,13 +3,13 @@
     Test pn532 functions
 """
 from unittest import TestCase
-from pn532pi.interfaces.pn532i2c import pn532i2c
+from pn532pi.interfaces.pn532i2c import Pn532I2c
 from pn532pi.pn532.pn532 import pn532
 
 class TestPn532Func(TestCase):
     def setUp(self):
         # self.interface = pn532spi(pn532spi.SS0_GPIO8)
-        self.interface = pn532i2c(1)
+        self.interface = Pn532I2c(1)
         self.interface.begin()
         self.pn532 = pn532(self.interface)
 

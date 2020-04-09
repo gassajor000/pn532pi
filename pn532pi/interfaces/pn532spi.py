@@ -1,6 +1,6 @@
 import time
 
-from pn532pi.interfaces.pn532Interface import pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
+from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_ACK_WAIT_TIME, PN532_INVALID_FRAME, PN532_PN532TOHOST, \
     PN532_INVALID_ACK, PN532_TIMEOUT, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, \
     PN532_HOSTTOPN532, PN532_POSTAMBLE, REVERSE_BITS_ORDER
 from spidev import SpiDev
@@ -20,7 +20,7 @@ def _reverse_bits(data: bytearray) -> bytearray:
     return bytearray([REVERSE_BITS_ORDER(b) for b in data])
 
 
-class pn532spi(pn532Interface):
+class Pn532Spi(Pn532Interface):
     SS0_GPIO8 = 0
     SS1_GPIO7 = 1
 

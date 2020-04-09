@@ -18,7 +18,7 @@ def REVERSE_BITS_ORDER(b):
     b = (b & 0xAA) >> 1 | (b & 0x55) << 1
     return b
 
-class pn532Interface:
+class Pn532Interface:
     def begin(self):
         raise NotImplementedError('This function is virtual')
 
