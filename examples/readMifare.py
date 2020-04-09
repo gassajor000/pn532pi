@@ -20,11 +20,10 @@
 import time
 import binascii
 
-from pn532pi.pn532.pn532 import Pn532, PN532_MIFARE_ISO14443A_106KBPS
-from pn532pi.pn532.pn532_log import PrintHexChar
-from pn532pi.interfaces.pn532i2c import Pn532I2c
-from pn532pi.interfaces.pn532spi import Pn532Spi
-from pn532pi.interfaces.pn532hsu import Pn532Hsu
+from pn532pi import Pn532, pn532
+from pn532pi import Pn532I2c
+from pn532pi import Pn532Spi
+from pn532pi import Pn532Hsu
 
 # Set the desired interface to True
 SPI = False
@@ -67,7 +66,7 @@ def loop():
     #  Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
     #  'uid' will be populated with the UID, and uidLength will indicate
     #  if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
-    success, uid = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A_106KBPS)
+    success, uid = nfc.readPassiveTargetID(pn532.PN532_MIFARE_ISO14443A_106KBPS)
 
     if (success):
         #  Display some basic information about the card
@@ -102,13 +101,9 @@ def loop():
 
                 if (success):
                     #  Data seems to have been read ... spit it out
-                    print("Reading Block 4:")
-                    PrintHexChar(data, 16)
-                    print("")
+                    print("Reading Block 4: {}".format(binascii.hexlify(data)))
                     return True
 
-                    #  Wait a bit before reading the card again
-                    time.sleep(1)
                 else:
                     print("Ooops ... unable to read the requested block.  Try another key?")
             else:
@@ -123,12 +118,9 @@ def loop():
             success, data = nfc.mifareultralight_ReadPage(4)
             if (success):
                 #  Data seems to have been read ... spit it out
-                PrintHexChar(data, 4)
-                print("")
+                binascii.hexlify(data)
                 return True
 
-                #  Wait a bit before reading the card again
-                time.sleep(1)
             else:
                 print("Ooops ... unable to read the requested page!?")
 

@@ -6,10 +6,10 @@
 import time
 import binascii
 
-from pn532pi.pn532.pn532 import Pn532, PN532_MIFARE_ISO14443A_106KBPS
-from pn532pi.interfaces.pn532i2c import Pn532I2c
-from pn532pi.interfaces.pn532spi import Pn532Spi
-from pn532pi.interfaces.pn532hsu import Pn532Hsu
+from pn532pi import Pn532, pn532
+from pn532pi import Pn532I2c
+from pn532pi import Pn532Spi
+from pn532pi import Pn532Hsu
 
 # Set the desired interface to True
 SPI = False
@@ -53,7 +53,7 @@ def setup():
 def loop():
     print("wait for a tag")
     # wait until a tag is present
-    tag_present, uid = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A_106KBPS)
+    tag_present, uid = nfc.readPassiveTargetID(pn532.PN532_MIFARE_ISO14443A_106KBPS)
 
     if (tag_present):
         # Display some basic information about the card
@@ -93,7 +93,7 @@ def loop():
     # wait until the tag is removed
     while tag_present:
         time.sleep(.1)
-        tag_present, uid = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A_106KBPS)
+        tag_present, uid = nfc.readPassiveTargetID(pn532.PN532_MIFARE_ISO14443A_106KBPS)
 
 
 if __name__ == '__main__':
