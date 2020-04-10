@@ -2,7 +2,7 @@
     Updates a sector that is already formatted for NDEF (using
     mifareclassic_formatndef.py for example), inserting a new url
 
-    To enable debug message, define DEBUG in pn532/pn532_debug.h
+    To enable debug message, define DEBUG in nfc/pn532_debug.h
 """
 
 import time

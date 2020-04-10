@@ -3,7 +3,7 @@
     formatted for NDEF messages using mifareclassic_formatndef, and resets
     the authentication keys back to the Mifare Classic defaults
 
-    To enable debug message, define DEBUG in pn532/pn532_debug.h
+    To enable debug message, define DEBUG in nfc/pn532_debug.h
 """
 import binascii
 import time

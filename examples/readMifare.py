@@ -15,7 +15,7 @@
     Page 4 is read by default since this is the first 'general-
     purpose' page on the tags.
 
-    To enable debug message, define DEBUG in pn532/pn532_log.h
+    To enable debug message, define DEBUG in nfc/pn532_log.h
 """
 import time
 import binascii

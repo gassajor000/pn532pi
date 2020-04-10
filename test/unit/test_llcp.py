@@ -4,8 +4,8 @@
 """
 from unittest import TestCase, mock
 
-from pn532pi.pn532.llcp import Llcp, buildHeader
-from pn532pi.pn532.pn532 import Pn532
+from pn532pi.nfc.llcp import Llcp, buildHeader
+from pn532pi.nfc.pn532 import Pn532
 
 
 def _mock_link(resp_frames):

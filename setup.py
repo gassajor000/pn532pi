@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pn532pi",
-    version="1.1",
+    version="1.2",
     author="gassajor000",
     author_email="lgassjsg@example.com",
     description="PN532 library for Raspberry Pi",

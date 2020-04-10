@@ -5,8 +5,8 @@
     """
 from typing import Callable, Any
 
-from pn532pi.pn532.pn532 import Pn532, PN532_COMMAND_TGINITASTARGET
-from pn532pi.pn532.pn532_log import DMSG
+from pn532pi.nfc.pn532 import Pn532, PN532_COMMAND_TGINITASTARGET
+from pn532pi.nfc.pn532_log import DMSG
 
 NDEF_MAX_LENGTH = 128  # altough ndef can handle up to 0xfffe in size, arduino cannot.
 

@@ -4,7 +4,7 @@
 """
 from unittest import TestCase
 from pn532pi.interfaces.pn532i2c import Pn532I2c
-from pn532pi.pn532.pn532 import Pn532
+from pn532pi.nfc.pn532 import Pn532
 
 class TestPn532Func(TestCase):
     def setUp(self):
