@@ -2,8 +2,8 @@
 
 This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/Seeed-Studio/PN532) for using the PN532 chip with Raspberry Pi. 
 
-![Raspberry Pi](https://github.com/gassajor000/pyndef/blob/master/docs/14643-Raspberry_Pi_3_B_-02.jpg?raw=true)
-![PN532](https://github.com/gassajor000/pyndef/blob/master/docs/PN532--NFC-RFID-Module.jpg?raw=true)
+![Raspberry Pi](https://github.com/gassajor000/pn532pi/blob/master/docs/14643-Raspberry_Pi_3_B_-02.jpg?raw=true)
+![PN532](https://github.com/gassajor000/pn532pi/blob/master/docs/PN532--NFC-RFID-Module.jpg?raw=true)
 
 ### Features
 + Support all interfaces of PN532 (I2C, SPI, HSU )
@@ -17,25 +17,25 @@ This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/See
 + To read/write NFC Type 4 tag
 
 ### Getting Started
-+ Easy way
++ PyPI
+    1. Install with pip
+        ```
+        pip install pn532pi
+        ```
+    2. Follow examples
++ Direct Download
 
-  1. Download [zip file](https://github.com/gassajor000/pyndef/archive/master.zip) and extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
-  2. TODO: Download [Don's NDEF library](http://goo.gl/ewxeAe)， extract it into Arduino's libraries and rename it to NDEF.
-  3. Follow the examples of the two libraries.
+    1. Download [zip file](https://github.com/gassajor000/pn532pi/archive/master.zip) and extract the 4 folders(pn532pi, quick2wire, examples and test)
+    2. Follow the examples of the two libraries.
 
-+ Git way for Linux/Mac (recommended)
++ Clone Git Repository
 
-  1. Get PN532 library and NDEF library
-
-          cd {Arduino}\libraries  
-          git clone --recursive https://github.com/gassajor000/pyndef.git NFC
-          ln -s NFC/PN532 ./
-          ln -s NFC/PN532_SPI ./
-          ln -s NFC/PN532_I2C ./
-          ln -s NFC/PN532_HSU ./
-          ln -s NFC/NDEF ./
-
-  2. Follow the examples of the two libraries
+    1. Get pn532 library
+        ```
+          git clone --recursive https://github.com/gassajor000/pn532pi.git
+        ```
+    
+    2. Follow the examples of the two libraries
 
 ## Power
 The Raspberry Pi does not provide enough current to drive the PN532 chip. 
@@ -45,12 +45,11 @@ Instead you will need another power source (3.3v) to power the PN532
 ## I2C Interface
 
 I2C is short for Inter-integrated Circuit. I2C interface needs only 4 wires to connect PN532 with Raspbeery Pi.
-![I2C Connection](https://github.com/gassajor000/pyndef/blob/master/docs/rpi_i2c_connection.png?raw=true)
+![I2C Connection](https://github.com/gassajor000/pn532pi/blob/master/docs/rpi_i2c_connection.png?raw=true)
 
 To use the I2C bus 1 to control PN532, refer to the code below.
 ```python
-from PN532_I2C.pn532i2c import pn532i2c
-from PN532.pn532 import pn532
+from pn532i2c import pn532i2c, pn532
 	
 i2c = pn532i2c(1)
 nfc = pn532(i2c)

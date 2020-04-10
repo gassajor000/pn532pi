@@ -13,10 +13,8 @@ It works with
 + Support Peer to Peer communication(exchange data with android 4.0+)
 
 ### Getting Started
-1. Download [zip file](https://github.com/gassajor000/pyndef/archive/master.zip) and 
-extract the 4 folders(PN532, PN532_SPI, PN532_I2C and PN532_HSU) into Arduino's libraries.
-2. TODO: Downlaod [Don's NDEF library](http://goo.gl/ewxeAe) and extract it intro Arduino's libraries.
-3. Follow the examples of the two libraries.
+1. Download [zip file](https://github.com/gassajor000/pn532pi/archive/master.zip) and extract the 4 folders(pn532pi, quick2wire, examples and test)
+2. Follow the examples of the two libraries.
 
 ### To do
 + Card emulation

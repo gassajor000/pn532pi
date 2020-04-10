@@ -11,7 +11,7 @@ setuptools.setup(
     description="PN532 library for Raspberry Pi",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/gassajor000/pyndef",
+    url="https://github.com/gassajor000/pn532pi",
     packages=setuptools.find_packages(include=['quick2wire', 'quick2wire.*', 'pn532pi', 'pn532pi.*']),
     classifiers=[
         "Programming Language :: Python :: 3",
