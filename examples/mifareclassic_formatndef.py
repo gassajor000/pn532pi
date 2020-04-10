@@ -6,7 +6,7 @@
     Note that you need the baud rate to be 115200 because we need to print
     out the data and read from the card at the same time!
 
-    To enable debug message, define DEBUG in pn532/pn532_debug.h
+    To enable debug message, define DEBUG in nfc/pn532_debug.h
 """
 import binascii
 import time

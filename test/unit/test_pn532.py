@@ -4,7 +4,7 @@
 """
 import re
 from unittest import TestCase, mock
-from pn532pi.pn532.pn532 import Pn532
+from pn532pi.nfc.pn532 import Pn532
 from pn532pi.interfaces.pn532Interface import Pn532Interface
 
 

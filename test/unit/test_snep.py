@@ -4,8 +4,8 @@
 """
 from unittest import TestCase, mock
 
-from pn532pi.pn532.llcp import Llcp
-from pn532pi.pn532.snep import Snep
+from pn532pi.nfc.llcp import Llcp
+from pn532pi.nfc.snep import Snep
 
 
 def _mock_llcp(resp_frames):
@@ -37,7 +37,7 @@ class TestSnep(TestCase):
             (13, b'\x10\x02\x00\x00\x00\x07data100'),
         ]
         link = _mock_llcp(resp_frames=frames)
-        with mock.patch('pn532pi.pn532.snep.Llcp', new=link):
+        with mock.patch('pn532pi.nfc.snep.Llcp', new=link):
             nfc = Snep(link)
 
             for test in frames:
@@ -54,7 +54,7 @@ class TestSnep(TestCase):
             (6, b'\x10\x81abcd'),
         ]
         link = _mock_llcp(resp_frames=frames)
-        with mock.patch('pn532pi.pn532.snep.Llcp', new=link):
+        with mock.patch('pn532pi.nfc.snep.Llcp', new=link):
             nfc = Snep(link)
 
             status = nfc.write(bytearray(b'data'))

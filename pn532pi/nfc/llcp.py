@@ -1,8 +1,8 @@
-from pn532pi.pn532.macLink import MacLink
-from pn532pi.pn532.pn532 import Pn532
+from pn532pi.nfc.macLink import MacLink
+from pn532pi.nfc.pn532 import Pn532
 
 # LLCP PDU Type Values
-from pn532pi.pn532.pn532_log import DMSG
+from pn532pi.nfc.pn532_log import DMSG
 
 PDU_SYMM = 0x00
 PDU_PAX = 0x01

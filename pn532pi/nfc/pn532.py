@@ -9,7 +9,7 @@ from typing import List
 from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_TIMEOUT
 
 # PN532 Commands
-from pn532pi.pn532.pn532_log import DMSG, DMSG_HEX
+from pn532pi.nfc.pn532_log import DMSG, DMSG_HEX
 
 PN532_COMMAND_DIAGNOSE              = (0x00)
 PN532_COMMAND_GETFIRMWAREVERSION    = (0x02)

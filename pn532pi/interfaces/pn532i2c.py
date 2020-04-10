@@ -1,6 +1,6 @@
 import time
 
-from pn532pi.pn532.pn532_log import DMSG
+from pn532pi.nfc.pn532_log import DMSG
 from quick2wire.i2c import I2CMaster, writing, reading
 
 from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \

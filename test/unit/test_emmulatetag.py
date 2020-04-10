@@ -4,8 +4,8 @@
 """
 from unittest import TestCase, mock
 
-from pn532pi.pn532.emulatetag import EmulateTag
-from pn532pi.pn532.pn532 import Pn532
+from pn532pi.nfc.emulatetag import EmulateTag
+from pn532pi.nfc.pn532 import Pn532
 
 
 def _mock_pn532(resp_frames):
@@ -29,7 +29,7 @@ def _get_body(interface):
     return interface.tgSetData.call_args[0][1]
 
 
-def do_test(nfc: EmulateTag):
+def do_emulate(nfc: EmulateTag):
     try:
         nfc.emulate()
     except StopIteration:   # Run out of frames to process
@@ -44,7 +44,7 @@ class TestEmulateTag(TestCase):
         ]
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
-        do_test(nfc)
+        do_emulate(nfc)
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header, 'Select operation failed!')
         self.assertEqual(2, nfc.currentFile, 'Incorrect file selected!')
@@ -56,7 +56,7 @@ class TestEmulateTag(TestCase):
         ]
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
-        do_test(nfc)
+        do_emulate(nfc)
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header, 'Select operation failed!')
         self.assertEqual(1, nfc.currentFile, 'Incorrect file selected!')
@@ -68,7 +68,7 @@ class TestEmulateTag(TestCase):
         ]
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header, 'Select operation failed!')
@@ -83,7 +83,7 @@ class TestEmulateTag(TestCase):
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header[-2:], 'Read operation failed!')
@@ -99,7 +99,7 @@ class TestEmulateTag(TestCase):
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header[-2:], 'Read operation failed!')
@@ -114,7 +114,7 @@ class TestEmulateTag(TestCase):
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header[-2:], 'Read operation failed!')
@@ -130,7 +130,7 @@ class TestEmulateTag(TestCase):
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header[-2:], 'Read operation failed!')
@@ -144,14 +144,14 @@ class TestEmulateTag(TestCase):
         link = _mock_pn532(resp_frames=frames)
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
-        do_test(nfc)
+        do_emulate(nfc)
 
         header = _get_header(link)
         self.assertEqual(b'\x90\x00', header, 'Update Binary operation failed!')
         self.assertEqual(b'\x00\x08\xa1\xa2\xa3\xa4\xd5\xd6\xd7\xd8', nfc.ndef_file, 'Incorrect data written!')
 
     def test_update_ndef_callback(self):
-        """nupdateNdefCallback is called when binary is updated"""
+        """updateNdefCallback is called when binary is updated"""
         frames = [
             (12, b'\x02\xD6\x00\x00\x06\x00\x08\xa1\xa2\xa3\xa4'),    # Update Binary
         ]
@@ -161,6 +161,6 @@ class TestEmulateTag(TestCase):
         nfc = EmulateTag(link)
         nfc.setNdefFile(b'\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8')
         nfc.updateNdefCallback = mock_callback
-        do_test(nfc)
+        do_emulate(nfc)
 
         mock_callback.assert_called_once_with(b'\xa1\xa2\xa3\xa4\xd5\xd6\xd7\xd8')

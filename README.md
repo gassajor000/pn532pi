@@ -49,10 +49,10 @@ I2C is short for Inter-integrated Circuit. I2C interface needs only 4 wires to c
 
 To use the I2C bus 1 to control PN532, refer to the code below.
 ```python
-from pn532i2c import pn532i2c, pn532
+from pn532pi import Pn532I2c, Pn532
 	
-i2c = pn532i2c(1)
-nfc = pn532(i2c)
+i2c = Pn532I2c(1)
+nfc = Pn532(i2c)
 
 def setup():
     nfc.begin()
