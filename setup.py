@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pn532pi",
-    version="1.2",
+    version="1.3",
     author="gassajor000",
     author_email="lgassjsg@example.com",
     description="PN532 library for Raspberry Pi",
@@ -19,5 +19,5 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     python_requires='>=3.4',
-    isntall_requires=['pyserial', 'spidev'],
+    install_requires=['pyserial', 'spidev', 'typing'],
 )
