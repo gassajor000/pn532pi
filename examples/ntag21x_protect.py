@@ -65,8 +65,8 @@ def loop():
     # nfc.ntag21x_auth(password)
 
     status, buf = nfc.mifareultralight_ReadPage(3)
-    capacity = int(buf[2]) * 8
-    print("Tag capacity {:d} bytes".format(capacity))
+    capacity = int(buf[2])
+    print("Tag capacity {:d} bytes".format(capacity*8))
 
     cfg_page_base = 0x29   # NTAG213
     if (capacity == 0x3E):
