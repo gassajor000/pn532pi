@@ -21,6 +21,7 @@ class Pn532I2c(Pn532Interface):
 
     def begin(self):
         self._wire = I2CMaster(self._bus)
+        time.sleep(1)
 
     def wakeup(self):
         time.sleep(.05) # wait for all ready to manipulate pn532
