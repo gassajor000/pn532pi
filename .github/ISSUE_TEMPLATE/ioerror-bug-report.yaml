@@ -1,7 +1,7 @@
-name: General bug report
-description: File a bug report (for IOErrors use the other template)
-title: "[BUG] - (problem when doing x)"
-labels: ["bug", "triage"]
+name: IOError bug report
+description: Get Help with an IOError (communication error)
+title: "[IOERROR] - (problem when doing x)"
+labels: ["bug", "ioerror", "triage"]
 body:
   - type: textarea
     id: what-happened
@@ -50,7 +50,7 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: "# Development Environment"
+      value: "## Development Environment"
   - type: input
     id: host-controller
     attributes:
@@ -84,8 +84,20 @@ body:
       placeholder: Wall adapter 5V/1.5A
     validations:
       required: true
-  - type: textarea
-    id: extras
+  - type: markdown
     attributes:
-      label: Additional Context
-      description: Add any other context about the problem here. Logs, logic analyzer captures, etc.
+      value: "## Logic Capture"
+  - type: markdown
+    attributes:
+      value: |
+        To debug your IOError you MUST include a logic analyzer capture of the bug. 
+        IOErrors that do not include a logic capture will be closed.
+        A cheap logic analyzer can be purchased __[from amazon](https://www.amazon.com/HiLetgo-Analyzer-Ferrite-Channel-Arduino/dp/B077LSG5P2/ref=sr_1_3?crid=38GIA2ROFRPMM&keywords=logic+analyzer&qid=1692169154&sprefix=logic+analyzer%2Caps%2C169&sr=8-3)__ and run with the opensource __[sigrok](https://sigrok.org/wiki/)__ program.
+        Be sure to capture all of the IO lines. If your logic analyzer suppors analog lines, please also capture the vcc pin so we can check for current overdraw. 
+  - type: textarea
+    id: logic-cap
+    attributes:
+      label: Logic Traces and other details
+      description: Attach the exported data file (csv or bin file) (screenshots are also helpful). 
+    validations:
+      required: true
