@@ -62,7 +62,7 @@ body:
     id: python-version
     attributes:
       label: Python Version
-      placeholder: 3.8
+      placeholder: "3.8"
     validations:
       required: true
   - type: dropdown
