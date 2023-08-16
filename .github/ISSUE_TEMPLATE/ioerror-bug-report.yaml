@@ -50,7 +50,7 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: "# Development Environment"
+      value: "## Development Environment"
   - type: input
     id: host-controller
     attributes:
@@ -84,10 +84,17 @@ body:
       placeholder: Wall adapter 5V/1.5A
     validations:
       required: true
+  - type: markdown
+    attributes:
+    value:  ## Logic Capture
+      To debug your IOError you MUST include a logic analyzer capture of the bug. 
+      IOErrors that do not include a logic capture will be closed.
+      A cheap logic analyzer can be purchased [from amazon](https://www.amazon.com/HiLetgo-Analyzer-Ferrite-Channel-Arduino/dp/B077LSG5P2/ref=sr_1_3?crid=38GIA2ROFRPMM&keywords=logic+analyzer&qid=1692169154&sprefix=logic+analyzer%2Caps%2C169&sr=8-3) and run with the opensource [sigrok](https://sigrok.org/wiki/) program.
+      Be sure to capture all of the IO lines. If your logic analyzer suppors analog lines, please also capture the vcc pin so we can check for current overdraw. 
   - type: textarea
     id: logic-cap
     attributes:
       label: Logic Traces and other details
-      description: To debug your IOError you MUST include a logic analyzer capture of the bug. Attach the exported data file (csv or bin file) (screenshots are also helpful). IOErrors that do not include a logic capture will be closed.
+      description: Attach the exported data file (csv or bin file) (screenshots are also helpful). 
     validations:
       required: true
