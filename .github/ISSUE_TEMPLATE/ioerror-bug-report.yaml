@@ -86,7 +86,7 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: 
+      value: |
         ## Logic Capture
         To debug your IOError you MUST include a logic analyzer capture of the bug. 
         IOErrors that do not include a logic capture will be closed.
