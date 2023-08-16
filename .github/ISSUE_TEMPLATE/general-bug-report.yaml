@@ -1,0 +1,91 @@
+name: General bug report
+description: File a bug report (for IOErrors use the other template)
+title: "[BUG] - (problem when doing x)"
+labels: ["bug", "triage"]
+projects: []
+assignees: []
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen? Attach any screenshots here as well.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: dropdown
+    id: reproducability
+    attributes:
+      label: Reproducibility
+      description: How often do the steps produce the bug
+      options:
+        - Always (100% of runs)
+        - Frequently (> 50% of runs)
+        - Sometimes (10-50% of runs)
+        - Occasionally (< 10% of runs)
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Precise steps that can reproduce the bug
+      value: 
+        1. Run example A '...'
+        or 
+        1. Open Device ...
+        2. Query firmware version '....'
+        3. Read MiFare card '....'
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce-code
+    attributes:
+      label: Code to reproduce
+      description: Python code that can reproduce the bug
+      render: python
+      value: 
+        i2c = Pn532I2c(1)
+        nfc = Pn532(i2c)
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: **Development Environment**
+  - type: input
+    id: host-controller
+    attributes:
+      label: Host Controller
+      placeholder: Raspberry Pi 3B
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: 3.8
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface Mode
+      options:
+        - I2C
+        - SPI
+        - UART/HSM
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: psu
+    attributes:
+      label: Power Supply
+      description: Type of power supply and voltage/current rating
+      placeholder: Wall adapter 5V/1.5A
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here. Logs, logic analyzer captures, etc.
