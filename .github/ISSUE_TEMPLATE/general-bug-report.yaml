@@ -29,7 +29,7 @@ body:
     attributes:
       label: Steps to Reproduce
       description: Precise steps that can reproduce the bug
-      value: 
+      value: |
         1. Run example A '...'
         or 
         1. Open Device ...
@@ -43,7 +43,7 @@ body:
       label: Code to reproduce
       description: Python code that can reproduce the bug
       render: Python
-      value: 
+      value: |
         i2c = Pn532I2c(1)
         nfc = Pn532(i2c)
     validations:
