@@ -2,8 +2,6 @@ name: General bug report
 description: File a bug report (for IOErrors use the other template)
 title: "[BUG] - (problem when doing x)"
 labels: ["bug", "triage"]
-projects: []
-assignees: []
 body:
   - type: textarea
     id: what-happened
@@ -44,7 +42,7 @@ body:
     attributes:
       label: Code to reproduce
       description: Python code that can reproduce the bug
-      render: python
+      render: Python
       value: 
         i2c = Pn532I2c(1)
         nfc = Pn532(i2c)
@@ -58,6 +56,8 @@ body:
     attributes:
       label: Host Controller
       placeholder: Raspberry Pi 3B
+    validations:
+      required: true
   - type: input
     id: python-version
     attributes:
