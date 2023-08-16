@@ -50,7 +50,7 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: **Development Environment**
+      value: "**Development Environment**"
   - type: input
     id: host-controller
     attributes:
