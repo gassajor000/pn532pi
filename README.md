@@ -2,11 +2,13 @@
 
 This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/Seeed-Studio/PN532) for using the PN532 chip with Raspberry Pi. 
 
-![Raspberry Pi](https://github.com/gassajor000/pn532pi/blob/master/docs/14643-Raspberry_Pi_3_B_-02.jpg?raw=true)
-![PN532](https://github.com/gassajor000/pn532pi/blob/master/docs/PN532--NFC-RFID-Module.jpg?raw=true)
+<div display="block">
+<img desc="Raspberry Pi" src="https://github.com/gassajor000/pn532pi/blob/master/docs/14643-Raspberry_Pi_3_B_-02.jpg?raw=true" width="250">
+<img desc="PN532" src="https://github.com/gassajor000/pn532pi/blob/master/docs/PN532--NFC-RFID-Module.jpg?raw=true" width="250">
+</div>
 
 ### Features
-+ Support all interfaces of PN532 (I2C, SPI, HSU )
++ Support all interfaces of PN532 (I2C, SPI, HSU)
 + Read/write Mifare Classic Card
 + Communicate with android 4.0+([Lists of devices supported](https://github.com/Seeed-Studio/PN532/wiki/List-of-devices-supported))
 + Card emulation (NFC Type 4 tag)
@@ -38,9 +40,10 @@ This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/See
     2. Follow the examples of the two libraries
 
 ## Power
-The Raspberry Pi does not provide enough current to drive the PN532 chip. 
+The Raspberry Pi 3.3v regulator does not provide enough current to drive the PN532 chip. 
 If you try to run the PN532 off your Raspberry Pi it will reset randomly and may not respond to commands.
-Instead you will need another power source (3.3v) to power the PN532
+Instead you will need another power source (3.3v) to power the PN532. Some people have been able to run 
+the PN532 off of the 5V rail of the raspberry pi but this is not the recommended way of powering it.
 
 ## I2C Interface
 
@@ -74,6 +77,19 @@ if SPI:
     nfc = Pn532(PN532_SPI)
 ```
 Then you can just call `python <example file>.py` from a terminal.
+
+# Help debugging
+We are willing to provide debug help for this library however there is currently only one maintainer doing this in his free time. 
+Don't be surprised if responses take a couple days. Also, as hardware issues can be quite difficult to debug remotely, 
+if your issue cannot be replicated using the test setup (pi 3B+) then there may not be much we can do.
+
+For `Remote IO Errors` (I2C communciation errors) we also require that you take a logic capture
+of the i2c failure. This is needed to determine whether the pi or the nfc chip is the cause of the communication failure. Below is a 
+recommendation for an affordable logic analyzer that can be run with the opensource [Pulse View](https://sigrok.org/wiki/PulseView) 
+application or with the Selaea app.
+
+[HiLetgo USB Logic Analyzer](https://www.amazon.com/HiLetgo-Analyzer-Ferrite-Channel-Arduino/dp/B077LSG5P2/ref=sr_1_1_sspa?keywords=hiletgo+logic+analyzer&qid=1693720396&sprefix=hiletgo+logic%2Caps%2C163&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1)
+
 
 ### Contribution
 It's based on [Adafruit_NFCShield_I2C](http://goo.gl/pk3FdB). 
