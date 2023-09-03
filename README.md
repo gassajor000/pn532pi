@@ -59,6 +59,22 @@ def setup():
     # ...
 ```
 
+# Examples
+To run an example you will need to change the interface flags to the interface you are using.
+For SPI you may also have to change the slave select pin to the pin you have connected.
+```python
+# Set the desired interface to True
+SPI = True
+I2C = False
+HSU = False
+
+...
+if SPI:
+    PN532_SPI = Pn532Spi(Pn532Spi.SS0_GPIO8)
+    nfc = Pn532(PN532_SPI)
+```
+Then you can just call `python <example file>.py` from a terminal.
+
 ### Contribution
 It's based on [Adafruit_NFCShield_I2C](http://goo.gl/pk3FdB). 
 [Seeed Studio](http://goo.gl/zh1iQh) rewrite the library to make it easy to support different interfaces and platforms. 
