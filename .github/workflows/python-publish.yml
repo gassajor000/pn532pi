@@ -12,8 +12,9 @@ on:
   push:
     branches:
       - master
-    tags:
-      - v*
+    paths:
+      - pn532pi/**
+      - quick2wire/**
 
 permissions:
   contents: read
