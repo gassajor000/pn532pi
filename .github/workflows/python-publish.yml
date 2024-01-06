@@ -12,6 +12,8 @@ on:
   push:
     branches:
       - master
+    tags:
+      - v*
 
 permissions:
   contents: read
@@ -38,4 +40,4 @@ jobs:
       with:
         repository-url: https://pypi.org/project/pn532pi/
         user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        password: ${{ secrets.PYPI_TOKEN }}
