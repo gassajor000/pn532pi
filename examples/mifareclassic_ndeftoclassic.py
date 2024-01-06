@@ -108,7 +108,7 @@ def loop():
         return
       
       # Step 2: Write to the other blocks
-      blockBuffer = bytearray('\x00'*16)
+      blockBuffer = bytearray(b'\x00'*16)
       if (idx == 16):
         if (not (nfc.mifareclassic_WriteDataBlock((BLOCK_NUMBER_OF_SECTOR_TRAILER(idx)) - 3, blockBuffer))):
           print("Unable to write to sector {}".format(numOfSector))
@@ -125,7 +125,7 @@ def loop():
           print("Unable to write to sector {}".format(numOfSector))
           return
 
-      blockBuffer = bytearray('\x00' * 16)
+      blockBuffer = bytearray(b'\x00' * 16)
       if (not(nfc.mifareclassic_WriteDataBlock((BLOCK_NUMBER_OF_SECTOR_TRAILER(idx)) - 1, blockBuffer))):
         print("Unable to write to sector {}".format(numOfSector))
         return
