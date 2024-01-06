@@ -1,0 +1,103 @@
+name: IOError bug report
+description: Get Help with an IOError (communication error)
+title: "[IOERROR] - (problem when doing x)"
+labels: ["bug", "ioerror", "triage"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen? Attach any screenshots here as well.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: dropdown
+    id: reproducability
+    attributes:
+      label: Reproducibility
+      description: How often do the steps produce the bug
+      options:
+        - Always (100% of runs)
+        - Frequently (> 50% of runs)
+        - Sometimes (10-50% of runs)
+        - Occasionally (< 10% of runs)
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Precise steps that can reproduce the bug
+      value: |
+        1. Run example A '...'
+        or 
+        1. Open Device ...
+        2. Query firmware version '....'
+        3. Read MiFare card '....'
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce-code
+    attributes:
+      label: Code to reproduce
+      description: Python code that can reproduce the bug
+      render: Python
+      value: |
+        i2c = Pn532I2c(1)
+        nfc = Pn532(i2c)
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "## Development Environment"
+  - type: input
+    id: host-controller
+    attributes:
+      label: Host Controller
+      placeholder: Raspberry Pi 3B
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: "3.8"
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface Mode
+      options:
+        - I2C
+        - SPI
+        - UART/HSM
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: psu
+    attributes:
+      label: Power Supply
+      description: Type of power supply and voltage/current rating
+      placeholder: Wall adapter 5V/1.5A
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "## Logic Capture"
+  - type: markdown
+    attributes:
+      value: |
+        To debug your IOError you MUST include a logic analyzer capture of the bug. 
+        IOErrors that do not include a logic capture will be closed.
+        A cheap logic analyzer can be purchased __[from amazon](https://www.amazon.com/HiLetgo-Analyzer-Ferrite-Channel-Arduino/dp/B077LSG5P2/ref=sr_1_3?crid=38GIA2ROFRPMM&keywords=logic+analyzer&qid=1692169154&sprefix=logic+analyzer%2Caps%2C169&sr=8-3)__ and run with the opensource __[sigrok](https://sigrok.org/wiki/)__ program.
+        Be sure to capture all of the IO lines. If your logic analyzer suppors analog lines, please also capture the vcc pin so we can check for current overdraw. 
+  - type: textarea
+    id: logic-cap
+    attributes:
+      label: Logic Traces and other details
+      description: Attach the exported data file (csv or bin file) (screenshots are also helpful). 
+    validations:
+      required: true
