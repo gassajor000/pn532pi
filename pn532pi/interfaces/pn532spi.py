@@ -45,17 +45,20 @@ class Pn532Spi(Pn532Interface):
         data_out = list(_reverse_bits([STATUS_READ, 0]))
         return _reverse_bits(self._spi.xfer2(data_out))[1]
 
-    def __init__(self, ss: int):
+    def __init__(self, ss: int, speed_hz: int=4_000_000):
+        """Pass in slave select pin and optional speed (4MHz default, 5MHz max)"""
         self._command = 0
         self._ss = ss
         self._spi = SpiDev()
+        assert speed_hz <= 5_000_000, "SPI Bus speed must be <= 5MHz"
+        self._speed = speed_hz
         assert ss in [1, 0], 'Chip select must be 1 or 0'
 
     def begin(self):
         self._spi.open(RPI_BUS0, self._ss)
         self._spi.mode = SPI_MODE0  # PN532 only supports mode0
         self._spi.cshigh = False  # Active low
-        self._spi.max_speed_hz = 5000000 # 5 MHz
+        self._spi.max_speed_hz = self._speed
 
     def wakeup(self) -> None:
         # Chip select controlled by driver
