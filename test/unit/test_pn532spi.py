@@ -49,7 +49,7 @@ class TestPn532spi(TestCase):
 
         self.assertEqual(0, MOCK_SPI.mode, "spi mode not set to 0!")
         self.assertEqual(False, MOCK_SPI.cshigh, "spi cshigh not set to False!")
-        self.assertLessEqual(5000000, MOCK_SPI.max_speed_hz, "spi max_speed_hz greater than 5MHz!")
+        self.assertLessEqual(MOCK_SPI.max_speed_hz, 5000000, "spi max_speed_hz greater than 5MHz!")
         MOCK_SPI.open.assert_called_once_with(0, 0)     # SPI Bus 0, SS 0
 
         MOCK_SPI.reset_mock()
@@ -57,6 +57,18 @@ class TestPn532spi(TestCase):
         pn532.begin()
 
         MOCK_SPI.open.assert_called_once_with(0, 1)  # SPI Bus 0, SS 1
+        assert MOCK_SPI.max_speed_hz == 4_000_000
+
+        MOCK_SPI.reset_mock()
+        pn532 = Pn532Spi(ss=Pn532Spi.SS1_GPIO7, speed_hz=int(1e6))
+        pn532.begin()
+
+        assert MOCK_SPI.max_speed_hz == 1_000_000
+
+        MOCK_SPI.reset_mock()
+        with self.assertRaises(AssertionError):
+            pn532 = Pn532Spi(ss=Pn532Spi.SS1_GPIO7, speed_hz=int(10e6))
+
 
     def test_invalidSlaveSelect(self):
         """pn532spi accepts only valid slave select values"""
