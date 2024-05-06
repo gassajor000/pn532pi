@@ -89,7 +89,7 @@ class Pn532Spi(Pn532Interface):
             time.sleep(.001)    # sleep 1 ms
             timer+=1
             if ((0 != timeout) and (timer > timeout)):
-                return -1          
+                return -1  
 
 
         data = self._xfer_bytes([DATA_READ] + [0 for i in range(5)])
