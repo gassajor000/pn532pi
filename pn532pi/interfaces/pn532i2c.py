@@ -2,6 +2,7 @@ import time
 
 from pn532pi.nfc.pn532_log import DMSG
 from quick2wire.i2c import I2CMaster, writing, reading
+import errno
 
 from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2, PN532_HOSTTOPN532, \
     PN532_INVALID_FRAME, PN532_POSTAMBLE, PN532_PN532TOHOST, PN532_ACK_WAIT_TIME, PN532_TIMEOUT, \
@@ -154,18 +155,24 @@ class Pn532I2c(Pn532Interface):
         DMSG('\n')
 
         t = 0
-        while 1:
-            responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, len(PN532_ACK) + 1))
-            data = bytearray(responses[0])
-            if (data[0] & 1):
-              # check first byte --- status
-                break # PN532 is ready
-
+        while t <= PN532_ACK_WAIT_TIME:
+            try:
+                responses = self._wire.transaction(reading(PN532_I2C_ADDRESS, len(PN532_ACK) + 1))
+                data = bytearray(responses[0])
+                if (data[0] & 1):
+                    # check first byte --- status
+                    break # PN532 is ready
+            except IOError as e:
+                # As of Python 3.3 IOError is the same as OSError so we should check the error code
+                if e.errno != errno.EIO:
+                    raise   # Reraise the error   
+                # Otherwise do nothing, sleep and try again
+            
             time.sleep(.001)    # sleep 1 ms
             t+=1
-            if (t > PN532_ACK_WAIT_TIME):
-                DMSG("Time out when waiting for ACK\n")
-                return PN532_TIMEOUT
+        else:
+            DMSG("Time out when waiting for ACK\n")
+            return PN532_TIMEOUT
 
         DMSG("ready at : ")
         DMSG(time.time())
