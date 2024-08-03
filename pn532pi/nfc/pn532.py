@@ -4,7 +4,7 @@
     @license  BSD
 
 """
-from typing import List
+from typing import List, NamedTuple
 
 from pn532pi.interfaces.pn532Interface import Pn532Interface, PN532_TIMEOUT
 
@@ -126,6 +126,33 @@ FELICA_WRITE_MAX_SERVICE_NUM        = 16
 FELICA_WRITE_MAX_BLOCK_NUM          = 10 # for typical FeliCa card
 FELICA_REQ_SERVICE_MAX_NODE_NUM     = 32
 
+# Support options in FW Version Info
+SUPPORTS_ISO18092 = 0b100
+SUPPORTS_ISO14443_A = 0b010
+SUPPORTS_ISO14443_B = 0b001
+class Pn532FirmwareInfo(NamedTuple):
+    """
+    Information contained in the response to the 
+    GetFirmwareVersion command
+    """
+    ic_version: int
+    fw_major: int
+    fw_minor: int
+    support_opts: int
+    iso18092: bool
+    iso14443_a: bool
+    iso14443_b: bool
+
+    def __str__(self) -> str:
+        all_opts = [('ISO18092', self.iso18092), ('ISO4443-A', self.iso14443_a), 
+                    ('ISO4443-B', self.iso14443_b)]
+        opts = [name for name, supported in all_opts if supported]
+        return (f'Pn532FirmwareInfo(IC Version: {hex(self.ic_version)}, '
+                f'FW Version: {self.fw_major}.{self.fw_minor}, '
+                f'Supports: {opts} ({hex(self.support_opts)}))')
+    
+    def __repr__(self) -> str:
+        return str(self)
 
 class Pn532:
     def __init__(self, interface: Pn532Interface):
@@ -149,6 +176,8 @@ class Pn532:
         """
         Checks the firmware version of the PN5xx chip
 
+        See https://www.nxp.com/docs/en/user-guide/141520.pdf page 73
+
         :returns:  The chip's firmware version and ID
         """
         if (self._interface.writeCommand(bytearray([PN532_COMMAND_GETFIRMWAREVERSION]))):
@@ -168,6 +197,20 @@ class Pn532:
         # response |= self.pn532_packetbuffer[3]
 
         return int.from_bytes(response, byteorder='big')
+    
+    def getFirmwareInfo(self) -> tuple:
+        """
+        Parse the firmware version info into its separate parts
+        Format: |ic_version[8] | fw_version[8] | fw_revision[8] | support_opts[8]|
+        """
+        firmware_data = self.getFirmwareVersion()
+        opts, fw_min, fw_maj, ic_ver = [(firmware_data >> i) & 0xFF for i in range(0, 32, 8)]
+
+        return Pn532FirmwareInfo(ic_ver, fw_maj, fw_min, opts, 
+                                 bool(opts & SUPPORTS_ISO18092), 
+                                 bool(opts & SUPPORTS_ISO14443_A),
+                                 bool(opts & SUPPORTS_ISO14443_B))
+
 
     def readRegister(self, reg: int) -> int:
         """

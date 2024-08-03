@@ -41,9 +41,9 @@ This is a port of [Seeed Studios's PN532 Arduino Library](https://github.com/See
 
 ## Power
 The Raspberry Pi 3.3v regulator does not provide enough current to drive the PN532 chip. 
-If you try to run the PN532 off your Raspberry Pi it will reset randomly and may not respond to commands.
-Instead you will need another power source (3.3v) to power the PN532. Some people have been able to run 
-the PN532 off of the 5V rail of the raspberry pi but this is not the recommended way of powering it.
+If you try to run the PN532 off your Raspberry Pi 3.3v it will reset randomly and may not respond to commands.
+Instead you will need another power source (3.3v or 5v) to power the PN532. It is generally safe to tap into the
+5v pin on the Raspberry Pi so long as your power supply can provide enough power for the PN532 and the pi.
 
 ## I2C Interface
 
