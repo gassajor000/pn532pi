@@ -86,7 +86,7 @@ if your issue cannot be replicated using the test setup (pi 3B+) then there may 
 For `Remote IO Errors` (I2C communciation errors) we also require that you take a logic capture
 of the i2c failure. This is needed to determine whether the pi or the nfc chip is the cause of the communication failure. Below is a 
 recommendation for an affordable logic analyzer that can be run with the opensource [Pulse View](https://sigrok.org/wiki/PulseView) 
-application or with the Selaea app.
+application or with [Selaea Logic](https://www.saleae.com/pages/downloads).
 
 [HiLetgo USB Logic Analyzer](https://www.amazon.com/HiLetgo-Analyzer-Ferrite-Channel-Arduino/dp/B077LSG5P2/ref=sr_1_1_sspa?keywords=hiletgo+logic+analyzer&qid=1693720396&sprefix=hiletgo+logic%2Caps%2C163&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1)
 
