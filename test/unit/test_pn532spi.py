@@ -37,7 +37,7 @@ MOCK_SPI = MockSpi(id='my mock_spi')
 modules = {'spidev': mock.MagicMock(SpiDev=mock.MagicMock(return_value=MOCK_SPI)),
            'quick2wire.i2c': mock.MagicMock(), 'serial': mock.MagicMock()}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.interfaces.pn532spi import Pn532Spi
+    from pn532pi.interfaces.raspberry_pi.pn532spi import Pn532Spi
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 
