@@ -37,9 +37,11 @@ class Pn532I2cBase(Pn532Interface):
         DMSG(f"writeCommand: {header} {body} {data_out}")
         
         try:
+            # Send data.
             self._write(bytes(data_out))
         except Exception as e:
             DMSG(e)
+            DMSG("\nToo many data to send, I2C doesn't support such a big packet\n")  # I2C max packet: 32 bytes
             return PN532_INVALID_FRAME
 
         return self._readAckFrame()
@@ -58,10 +60,18 @@ class Pn532I2cBase(Pn532Interface):
             if timeout and t > timeout:
                 return -1
 
-        if data[1:4] != bytes([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]):
+        if (PN532_PREAMBLE != data[1] or # PREAMBLE
+            PN532_STARTCODE1 != data[2] or # STARTCODE1
+            PN532_STARTCODE2 != data[3]    # STARTCODE2
+        ):
+            DMSG('Invalid Length frame: {}'.format(data))
             return PN532_INVALID_FRAME
 
         length = data[4]
+        DMSG('_getResponseLength length is {:d}'.format(length))
+
+        # request for last respond msg again
+        DMSG('_getResponseLength writing nack: {!r}'.format(PN532_NACK))
         self._write(bytes(PN532_NACK))
         return length
 
@@ -69,51 +79,93 @@ class Pn532I2cBase(Pn532Interface):
         t = 0
         length = self._getResponseLength(timeout)
         buf = bytearray()
+
         if length < 0:
             return length, buf
 
+        # [RDY] 00 00 FF LEN LCS (TFI PD0 ... PDn) DCS 00
         while True:
             data = self._read(6 + length + 2)
             if data and data[0] & 0x1:
                 break
+
             time.sleep(0.001)
             t += 1
             if timeout and t > timeout:
                 return -1, buf
 
-        if data[1:4] != bytes([PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2]):
+        if (PN532_PREAMBLE != data[1] or # PREAMBLE
+            PN532_STARTCODE1 != data[2] or # STARTCODE1
+            PN532_STARTCODE2 != data[3]    # STARTCODE2
+        ):
+            DMSG('Invalid Response frame: {}'.format(data))
             return PN532_INVALID_FRAME, buf
 
         length = data[4]
-        if (length + data[5]) & 0xFF != 0:
+
+        if (0 != (length + data[5] & 0xFF)):
+            # checksum of length
+            DMSG('Invalid Length Checksum: len {:d} checksum {:d}'.format(length, data[5]))
             return PN532_INVALID_FRAME, buf
 
         cmd = self._command + 1
-        if data[6] != PN532_PN532TOHOST or data[7] != cmd:
+        if (PN532_PN532TOHOST != data[6] or (cmd) != data[7]):
             return PN532_INVALID_FRAME, buf
+        
+        length -= 2
+
+        DMSG("readResponse read command:  {:x}".format(cmd))
+
+        dsum = PN532_PN532TOHOST + cmd
+        buf = data[8:-2]
+        DMSG('readResponse response: {!r}\n'.format(buf))
+        dsum += sum(buf)
 
         buf = data[8:-2]
         checksum = data[-2]
-        if (sum(buf) + PN532_PN532TOHOST + cmd + checksum) & 0xFF != 0:
+        if (0 != (dsum + checksum) & 0xFF):
+            DMSG("checksum is not ok: sum {:d} checksum {:d}\n".format(dsum, checksum))
             return PN532_INVALID_FRAME, buf
+        # POSTAMBLE data [-1]
 
         return length, buf
     
     def _readAckFrame(self):
         PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
+        
+        DMSG("wait for ack at : ")
+        DMSG(time.time())
+        DMSG('\n')
+
         t = 0
         while t <= PN532_ACK_WAIT_TIME:
-            data = self._read(len(PN532_ACK) + 1)
-            if data and data[0] & 1:
-                break
-            time.sleep(0.001)
-            t += 1
+            try:
+                data = self._read(len(PN532_ACK) + 1)
+                if (data[0] & 1):
+                    # check first byte --- status
+                    break # PN532 is ready
+            except IOError as e:
+                # As of Python 3.3 IOError is the same as OSError so we should check the error code
+                if e.errno != errno.EIO:
+                    raise   # Reraise the error   
+                # Otherwise do nothing, sleep and try again
+            
+            time.sleep(.001)    # sleep 1 ms
+            t+=1
         else:
+            DMSG("Time out when waiting for ACK\n")
             return PN532_TIMEOUT
 
+        DMSG("ready at : ")
+        DMSG(time.time())
+        DMSG('\n')
+
         ackBuf = list(data[1:])
+
         if ackBuf != PN532_ACK:
+            DMSG("Invalid ACK {}\n".format(ackBuf))
             return PN532_INVALID_ACK
+
         return 0
 
     def _write(self, data: bytes):
