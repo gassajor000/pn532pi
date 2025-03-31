@@ -51,7 +51,7 @@ modules = {'quick2wire.i2c': mock.MagicMock(I2CMaster=mock.MagicMock(return_valu
                                             writing=mock_writing),
            'serial': mock.MagicMock(), 'spidev': mock.MagicMock()}
 with mock.patch.dict('sys.modules', modules):
-    from pn532pi.interfaces.pn532i2c import Pn532I2c
+    from pn532pi.interfaces.raspberry_pi.pn532i2c import Pn532I2c
 
 PN532_ACK = [0, 0, 0xFF, 0, 0xFF, 0]
 

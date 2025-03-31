@@ -1,7 +1,7 @@
 try:
-    from pn532pi.interfaces.pn532i2c import Pn532I2c
-    from pn532pi.interfaces.pn532spi import Pn532Spi
-    from pn532pi.interfaces.pn532hsu import Pn532Hsu
+    from pn532pi.interfaces.raspberry_pi.pn532i2c import Pn532I2c
+    from pn532pi.interfaces.raspberry_pi.pn532spi import Pn532Spi
+    from pn532pi.interfaces.raspberry_pi.pn532hsu import Pn532Hsu
 except:        # Allow unit tests to run without importing interfaces
     Pn532Hsu = None
     Pn532Spi = None

@@ -3,7 +3,7 @@
     Test communication with PN532 over i2c
 """
 from unittest import TestCase
-from pn532pi.interfaces.pn532i2c import Pn532I2c
+from pn532pi.interfaces.raspberry_pi.pn532i2c import Pn532I2c
 
 
 class TestPn532i2cComm(TestCase):
