@@ -154,6 +154,9 @@ class Pn532I2c(Pn532Interface):
         DMSG(time.time())
         DMSG('\n')
 
+        # Support older Python versions without errno.EREMOTEIO defined
+        EREMOTEIO = getattr(errno, 'EREMOTEIO', 121)
+
         t = 0
         while t <= PN532_ACK_WAIT_TIME:
             try:
@@ -164,10 +167,10 @@ class Pn532I2c(Pn532Interface):
                     break # PN532 is ready
             except IOError as e:
                 # As of Python 3.3 IOError is the same as OSError so we should check the error code
-                if e.errno != errno.EIO:
-                    raise   # Reraise the error   
+                if e.errno != errno.EIO and e.errno != EREMOTEIO:
+                    raise   # Reraise the error
                 # Otherwise do nothing, sleep and try again
-            
+
             time.sleep(.001)    # sleep 1 ms
             t+=1
         else:
